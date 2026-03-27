@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小专注</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #51d0a3;
+            --primary-light: #f0fdf9;
+            --bg: #fafbfc;
+            --card: #ffffff;
+            --text: #1f2937;
+            --text-gray: #6b7280;
+            --border: #f3f4f6;
+        }
+        .theme-blue {
+            --primary: #3b82f6;
+            --primary-light: #eff6ff;
+        }
+        .theme-pink {
+            --primary: #ec4899;
+            --primary-light: #fdf2f8;
+        }
+        .theme-purple {
+            --primary: #8b5cf6;
+            --primary-light: #faf5ff;
+        }
+        .theme-dark {
+            --primary: #51d0a3;
+            --primary-light: #1f2937;
+            --bg: #111827;
+            --card: #1f2937;
+            --text: #f9fafb;
+            --text-gray: #9ca3af;
+            --border: #374151;
+        }
+        body {
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: -apple-system, "Noto Sans SC", sans-serif;
+            transition: all 0.3s ease;
+        }
+        .mobile-frame {
+            width: 375px;
+            height: 812px;
+            background: var(--bg);
+            border-radius: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 3px solid var(--card);
+            transition: all 0.3s ease;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .timer-circle-bg { stroke: var(--border); }
+        .timer-circle-prog {
+            stroke: var(--primary);
+            transition: stroke-dashoffset 1s linear;
+            stroke-linecap: round;
+        }
+        .nav-bar {
+            height: 80px;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: 20px;
+            z-index: 10;
+        }
+        .btn-tap:active { transform: scale(0.95); opacity: 0.8; }
+        ::-webkit-scrollbar { display: none; }
+        .bar-anim { transition: height 0.8s ease; }
+        .progress-bar { transition: width 0.8s ease; }
+        .modal-mask {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99;
+        }
+        .modal-content {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 16px;
+            width: 80%;
+            max-width: 300px;
+        }
+        .text-primary { color: var(--primary); }
+        .bg-primary { background-color: var(--primary); }
+        .bg-primary-light { background-color: var(--primary-light); }
+        .text-dark { color: var(--text); }
+        .text-gray-custom { color: var(--text-gray); }
+        .card-bg { background: var(--card); }
+        .border-custom { border-color: var(--border); }
+
+        .custom-checkbox {
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .custom-checkbox:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        .custom-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .todo-item, .habit-item {
+            position: relative;
+            overflow: hidden;
+        }
+        .slide-delete {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 60px;
+            background: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transform: translateX(100%);
+            transition: transform 0.2s ease;
+        }
+        .todo-item.swiped .slide-delete,
+        .habit-item.swiped .slide-delete {
+            transform: translateX(0);
+        }
+        .todo-item.swiped .todo-content,
+        .habit-item.swiped .habit-content {
+            transform: translateX(-60px);
+        }
+        .todo-content, .habit-content {
+            transition: transform 0.2s ease;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" class="mobile-frame">
+    <div v-if="toast" class="fixed top-12 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-5 py-2 rounded-full text-sm animate__animated animate__fadeIn">
+        {{ toast }}
+    </div>
+
+    <div v-if="showCategoryModal" class="modal-mask animate__animated animate__fadeIn">
+        <div class="modal-content">
+            <h3 class="text-lg font-bold mb-4 text-dark">分类管理</h3>
+            <div class="space-y-2 max-h-60 overflow-y-auto mb-3">
+                <div v-for="(c,idx) in categories" class="flex justify-between items-center p-2 border-b">
+                    <span>{{c}}</span>
+                    <button v-if="c!=='全部'" @click="delCategory(idx)" class="text-red-500 text-sm">删除</button>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <input v-model="newCat" placeholder="输入新分类" class="flex-1 px-3 py-2 border rounded-lg text-sm">
+                <button @click="addCategory" class="px-3 py-2 bg-primary text-white rounded-lg text-sm">添加</button>
+            </div>
+            <div class="flex gap-2 mt-3">
+                <button @click="showCategoryModal=false" class="flex-1 py-2 bg-gray-100 rounded-lg text-sm">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="showTargetModal" class="modal-mask animate__animated animate__fadeIn">
+        <div class="modal-content">
+            <h3 class="text-lg font-bold mb-4 text-dark">切换专注目标</h3>
+            <div class="space-y-2 max-h-60 overflow-y-auto">
+                <button @click="setTarget(null)" class="w-full p-2 text-left rounded-lg border" :class="!currentTarget ? 'bg-primary text-white' : ''">
+                    专注（无目标）
+                </button>
+                <div v-for="t in todos" @click="setTarget(t)" class="w-full p-2 text-left rounded-lg border" :class="currentTarget===t ? 'bg-primary text-white' : ''">
+                    任务：{{t.title}}
+                </div>
+                <div v-for="h in habits" @click="setTarget(h)" class="w-full p-2 text-left rounded-lg border" :class="currentTarget===h ? 'bg-primary text-white' : ''">
+                    习惯：{{h.name}}
+                </div>
+            </div>
+            <button @click="showTargetModal=false" class="w-full py-2 mt-3 bg-primary text-white rounded-lg text-sm">关闭</button>
+        </div>
+    </div>
+
+    <div v-if="showTodoModal" class="modal-mask animate__animated animate__fadeIn">
+        <div class="modal-content">
+            <h3 class="text-lg font-bold mb-4 text-dark">新增待办</h3>
+            <div class="space-y-3">
+                <input v-model="newTodo.title" type="text" placeholder="任务名称" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                <select v-model="newTodo.category" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                    <option v-for="c in categories" v-if="c!=='全部'" :value="c">{{c}}</option>
+                </select>
+                <select v-model="newTodo.p" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                    <option value="高">高优先级</option>
+                    <option value="中">中优先级</option>
+                    <option value="低">低优先级</option>
+                </select>
+                <div class="flex gap-2 mt-4">
+                    <button @click="showTodoModal = false" class="flex-1 px-4 py-2 bg-gray-100 rounded-lg text-sm">取消</button>
+                    <button @click="addTodo" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="showHabitModal" class="modal-mask animate__animated animate__fadeIn">
+        <div class="modal-content">
+            <h3 class="text-lg font-bold mb-4 text-dark">新增习惯</h3>
+            <div class="space-y-3">
+                <input v-model="newHabit.icon" type="text" placeholder="习惯图标（默认：📌）" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                <input v-model="newHabit.name" type="text" placeholder="习惯名称" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+                <div class="flex gap-2 mt-4">
+                    <button @click="showHabitModal = false" class="flex-1 px-4 py-2 bg-gray-100 rounded-lg text-sm">取消</button>
+                    <button @click="addHabit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="showSettingsModal" class="modal-mask animate__animated animate__fadeIn">
+        <div class="modal-content">
+            <h3 class="text-lg font-bold mb-4 text-dark">主题设置</h3>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <button @click="changeTheme('default')" class="p-3 rounded-lg border text-sm" :class="activeTheme === 'default' ? 'bg-primary text-white' : 'bg-white'">默认绿</button>
+                <button @click="changeTheme('blue')" class="p-3 rounded-lg border text-sm" :class="activeTheme === 'blue' ? 'bg-primary text-white' : 'bg-white'">清新蓝</button>
+                <button @click="changeTheme('pink')" class="p-3 rounded-lg border text-sm" :class="activeTheme === 'pink' ? 'bg-primary text-white' : 'bg-white'">温柔粉</button>
+                <button @click="changeTheme('purple')" class="p-3 rounded-lg border text-sm" :class="activeTheme === 'purple' ? 'bg-primary text-white' : 'bg-white'">优雅紫</button>
+                <button @click="changeTheme('dark')" class="p-3 rounded-lg border text-sm col-span-2" :class="activeTheme === 'dark' ? 'bg-primary text-white' : 'bg-white'">夜间模式</button>
+            </div>
+            <button @click="showSettingsModal = false" class="w-full py-2 bg-primary text-white rounded-lg text-sm">确认</button>
+        </div>
+    </div>
+
+    <div v-if="tab === 'focus'" class="flex-1 flex flex-col p-6 animate__animated animate__fadeIn">
+        <header class="flex justify-between items-center mt-6 mb-6">
+            <i @click="showStats = true" class="bi bi-graph-up-arrow text-xl text-gray-custom btn-tap"></i>
+            <h1 class="text-lg font-bold text-dark">小专注</h1>
+            <i @click="openSettings" class="bi bi-gear text-xl text-gray-custom btn-tap"></i>
+        </header>
+        <main class="flex-1 flex flex-col items-center justify-around">
+            <div class="relative w-60 h-60 flex items-center justify-center card-bg rounded-full shadow-sm">
+                <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <circle class="timer-circle-bg" cx="50" cy="50" r="45" fill="none" stroke-width="3"/>
+                    <circle class="timer-circle-prog" cx="50" cy="50" r="45" fill="none" stroke-width="4" :style="{ strokeDasharray: 283, strokeDashoffset: dashOffset }"/>
+                </svg>
+                <div class="absolute flex flex-col items-center">
+                    <span class="text-6xl font-light text-dark tabular-nums">{{ formatTime }}</span>
+                    <p @click="showTargetModal=true" class="text-xs text-primary font-bold mt-3 btn-tap">{{ modeLabel }}</p>
+                </div>
+            </div>
+            <div v-if="!isRunning" class="w-full mb-2">
+                <p class="text-xs text-gray-custom text-center mb-3">选择专注时长</p>
+                <div class="flex gap-4 justify-center">
+                    <button v-for="m in [25,45,60]" @click="setMinutes(m)" class="w-16 h-16 rounded-full flex items-center justify-center text-lg font-medium shadow-sm transition-all" :class="totalMin === m ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">
+                        {{ m }}
+                    </button>
+                    <button @click="customInput" class="w-16 h-16 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center shadow-sm">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-center gap-10 mb-4">
+                <button v-if="!isRunning" @click="startTimer" class="px-10 py-4 bg-primary text-white rounded-full font-bold shadow-sm btn-tap">
+                    开始专注
+                </button>
+                <template v-else>
+                    <button @click="pauseTimer" class="w-14 h-14 card-bg rounded-full shadow-sm flex items-center justify-center text-dark btn-tap">
+                        <i :class="['bi', isPaused ? 'bi-play-fill' : 'bi-pause-fill', 'text-xl']"></i>
+                    </button>
+                    <button @click="stopTimer" class="w-14 h-14 card-bg rounded-full shadow-sm flex items-center justify-center text-red-400 btn-tap">
+                        <i class="bi bi-stop-fill text-xl"></i>
+                    </button>
+                </template>
+            </div>
+            <div class="w-full">
+                <p class="text-xs text-gray-custom mb-2 ml-1">白噪音</p>
+                <div class="grid grid-cols-4 gap-3">
+                    <div v-for="s in sounds" @click="toggleSound(s.id)" class="flex flex-col items-center p-4 rounded-xl transition-all btn-tap" :class="activeSound === s.id ? 'bg-primary-light text-primary' : 'card-bg text-gray-400'">
+                        <i :class="['bi', s.icon, 'text-xl mb-1']"></i>
+                        <span class="text-xs">{{ s.name }}</span>
+                    </div>
+                    <div @click="showToast('即将上线')" class="flex flex-col items-center p-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 btn-tap">
+                        <i class="bi bi-plus-lg text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div v-if="tab === 'todo'" class="flex-1 flex flex-col p-6 animate__animated animate__fadeIn">
+        <header class="mt-6 mb-3">
+            <h1 class="text-2xl font-bold text-dark">待办任务</h1>
+            <div class="flex gap-2 mt-4">
+                <button v-for="c in categories" @click="todoFilter = c" class="text-xs px-4 py-2 rounded-full font-medium transition-all" :class="todoFilter === c ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">
+                    {{ c }}
+                </button>
+                <button @click="showCategoryModal=true" class="text-xs px-3 py-2 rounded-full bg-gray-100">
+                    <i class="bi bi-gear"></i>
+                </button>
+            </div>
+        </header>
+        <main class="flex-1 space-y-3 overflow-y-auto pb-24">
+            <div v-for="(t, idx) in sortedTodos" 
+                 @touchstart="startSwipe" 
+                 @touchend="endSwipe(idx, 'todo')"
+                 class="todo-item p-0 rounded-xl shadow-sm"
+                 :class="swipedIdx === idx && swipedType==='todo' ? 'swiped' : ''">
+                <div class="slide-delete" @click="deleteTodo(idx)">
+                    <i class="bi bi-trash text-xl"></i>
+                </div>
+                <div class="todo-content p-5 card-bg rounded-xl flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" v-model="t.done" class="custom-checkbox">
+                        <div :class="t.done ? 'opacity-60 line-through' : ''">
+                            <p class="text-base font-bold text-dark">{{ t.title }}</p>
+                            <p class="text-xs text-gray-custom mt-1">{{ t.category }}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 items-center">
+                        <i @click="startFocusTodo(t)" class="bi bi-play-circle-fill text-primary text-xl btn-tap"></i>
+                    </div>
+                </div>
+            </div>
+            <div v-if="filteredTodos.length === 0" class="flex flex-col items-center justify-center h-40 text-gray-400">
+                <i class="bi bi-list-task text-4xl mb-2"></i>
+                <p class="text-sm">暂无待办任务</p>
+            </div>
+        </main>
+        <div class="absolute bottom-20 left-0 right-0 text-center text-xs text-primary py-1">
+            今日专注：{{ todayFocusTime }} 分钟 · {{ todayFocusCount }} 次
+        </div>
+        <button @click="showTodoModal = true" class="absolute bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg btn-tap" style="z-index: 5;">
+            <i class="bi bi-plus-lg text-xl"></i>
+        </button>
+    </div>
+
+    <div v-if="tab === 'habit'" class="flex-1 flex flex-col p-6 animate__animated animate__fadeIn">
+        <header class="mt-6 mb-3">
+            <h1 class="text-2xl font-bold text-dark">习惯追踪</h1>
+        </header>
+        <main class="flex-1 space-y-4 overflow-y-auto pb-24">
+            <div class="p-5 card-bg rounded-xl shadow-sm">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-xs text-gray-custom">今日完成率</p>
+                    <p class="text-lg font-bold text-primary">{{ habitProgress }}%</p>
+                </div>
+                <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-primary progress-bar rounded-full" :style="{width: habitProgress + '%'}"></div>
+                </div>
+            </div>
+            <div v-for="(h, idx) in sortedHabits"
+                 @touchstart="startSwipe"
+                 @touchend="endSwipe(idx, 'habit')"
+                 class="habit-item p-0 rounded-xl shadow-sm"
+                 :class="swipedIdx === idx && swipedType==='habit' ? 'swiped' : ''">
+                <div class="slide-delete" @click="deleteHabit(idx)">
+                    <i class="bi bi-trash text-xl"></i>
+                </div>
+                <div class="habit-content p-5 card-bg rounded-xl flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">{{ h.icon }}</span>
+                        <div :class="h.done ? 'opacity-60 line-through' : ''">
+                            <p class="text-base font-bold text-dark">{{ h.name }}</p>
+                            <p class="text-xs text-primary mt-1">连续 {{ h.streak }} 天</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 items-center">
+                        <input type="checkbox" v-model="h.done" @change="onHabitCheck(h)" class="custom-checkbox">
+                        <i @click="startFocusHabit(h)" class="bi bi-play-circle-fill text-primary text-xl btn-tap"></i>
+                    </div>
+                </div>
+            </div>
+            <div v-if="habits.length === 0" class="flex flex-col items-center justify-center h-40 text-gray-400">
+                <i class="bi bi-heart text-4xl mb-2"></i>
+                <p class="text-sm">暂无习惯</p>
+            </div>
+        </main>
+        <button @click="showHabitModal = true" class="absolute bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full flex items-center justify-center shadow-lg btn-tap" style="z-index: 5;">
+            <i class="bi bi-plus-lg text-xl"></i>
+        </button>
+    </div>
+
+    <div v-if="tab === 'mine'" class="flex-1 p-6 animate__animated animate__fadeIn">
+        <header class="mt-6 mb-6">
+            <h1 class="text-2xl font-bold text-dark">我的</h1>
+        </header>
+        <div class="space-y-4">
+            <div class="p-4 card-bg rounded-xl shadow-sm">
+                <p class="text-sm font-bold mb-2">今日专注</p>
+                <p class="text-xl text-primary font-bold">{{ todayFocusTime }} 分钟 · {{ todayFocusCount }} 次</p>
+            </div>
+            <div class="p-4 card-bg rounded-xl shadow-sm">
+                <p class="text-sm font-bold mb-2">累计专注</p>
+                <p class="text-lg text-dark font-bold">{{ totalFocusTime }} 分钟</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button @click="showStats=true" class="p-4 card-bg rounded-xl shadow-sm text-center">
+                    <i class="bi bi-bar-chart text-xl text-primary"></i>
+                    <p class="text-xs mt-1">数据统计</p>
+                </button>
+                <button @click="openSettings" class="p-4 card-bg rounded-xl shadow-sm text-center">
+                    <i class="bi bi-palette text-xl text-primary"></i>
+                    <p class="text-xs mt-1">主题设置</p>
+                </button>
+            </div>
+            <button @click="clearAllData" class="w-full p-4 card-bg rounded-xl shadow-sm text-center text-red-500">
+                <i class="bi bi-trash text-xl"></i>
+                <p class="text-xs mt-1">清空所有数据</p>
+            </button>
+        </div>
+    </div>
+
+    <div v-if="showStats" class="fixed inset-0 z-50 card-bg flex flex-col p-6 animate__animated animate__slideInUp">
+        <header class="flex justify-between items-center mt-4 mb-6">
+            <i @click="showStats = false" class="bi bi-x-lg text-xl text-gray-custom btn-tap"></i>
+            <h2 class="text-lg font-bold text-dark">专注数据</h2>
+            <i @click="exportData" class="bi bi-share-fill text-xl text-primary btn-tap"></i>
+        </header>
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="p-4 bg-primary-light rounded-xl">
+                <p class="text-xs text-primary">今日专注</p>
+                <p class="text-xl font-bold text-primary mt-1">{{ todayFocusTime }} 分钟</p>
+            </div>
+            <div class="p-4 bg-green-50 rounded-xl">
+                <p class="text-xs text-green-600">专注天数</p>
+                <p class="text-xl font-bold text-green-700 mt-1">{{ focusDays }} 天</p>
+            </div>
+            <div class="p-4 bg-orange-50 rounded-xl">
+                <p class="text-xs text-orange-600">完成任务</p>
+                <p class="text-xl font-bold text-orange-700 mt-1">{{ completedTodos }} 个</p>
+            </div>
+            <div class="p-4 bg-purple-50 rounded-xl">
+                <p class="text-xs text-purple-600">习惯打卡</p>
+                <p class="text-xl font-bold text-purple-700 mt-1">{{ habitCheckTimes }} 次</p>
+            </div>
+        </div>
+        <div class="bg-gray-50 p-5 rounded-xl mb-5">
+            <h3 class="text-xs font-bold text-gray-600 mb-3">本周专注趋势</h3>
+            <div class="h-40 flex items-end justify-between px-1">
+                <div v-for="(v, i) in realWeekFocus" class="flex flex-col items-center gap-2">
+                    <div class="w-3 bg-primary-light rounded-full relative h-36">
+                        <div class="absolute bottom-0 w-full bg-primary rounded-full bar-anim" :style="{height: v + '%'}"></div>
+                    </div>
+                    <span class="text-[10px] text-gray-400">{{['一','二','三','四','五','六','日'][i]}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-bar">
+        <div v-for="n in navs" @click="tab = n.id" class="flex flex-col items-center gap-1 btn-tap">
+            <i :class="[tab === n.id ? n.iconFill : n.icon, 'text-xl', tab === n.id ? 'text-primary' : 'text-gray-400']"></i>
+            <span class="text-xs" :class="tab === n.id ? 'text-primary' : 'gray-400'">{{ n.name }}</span>
+        </div>
+    </nav>
+</div>
+
+<script>
+const { createApp, ref, computed, watch, onMounted, onUnmounted } = Vue
+createApp({
+  setup() {
+    const tab = ref('focus')
+    const navs = [
+      { id: 'focus', name: '专注', icon: 'bi-clock', iconFill: 'bi-clock-fill' },
+      { id: 'todo',  name: '任务', icon: 'bi-check-circle', iconFill: 'bi-check-circle-fill' },
+      { id: 'habit', name: '习惯', icon: 'bi-heart', iconFill: 'bi-heart-fill' },
+      { id: 'mine',  name: '我的', icon: 'bi-person', iconFill: 'bi-person-fill' }
+    ]
+
+    const activeTheme = ref(localStorage.getItem('xiaozhuanzhu_theme') || 'default')
+    const showSettingsModal = ref(false)
+    const changeTheme = (t) => {
+      activeTheme.value = t
+      document.body.className = `theme-${t}`
+      localStorage.setItem('xiaozhuanzhu_theme', t)
+      showToast('主题已切换')
+    }
+
+    const totalMin = ref(25)
+    const timeLeft = ref(25*60)
+    const isRunning = ref(false)
+    const isPaused = ref(false)
+    const modeLabel = ref('专注')
+    const currentTarget = ref(null)
+    let timer = null
+
+    const swipedIdx = ref(-1)
+    const swipedType = ref('')
+    let startX = 0
+
+    const startSwipe = (e) => {
+        startX = e.touches[0].clientX
+    }
+    const endSwipe = (idx, type) => {
+        const endX = event.changedTouches[0].clientX
+        const diff = startX - endX
+        if(diff > 50){
+            swipedIdx.value = idx
+            swipedType.value = type
+        }else{
+            swipedIdx.value = -1
+            swipedType.value = ''
+        }
+    }
+
+    const formatTime = computed(() => {
+      const m = Math.floor(timeLeft.value / 60)
+      const s = timeLeft.value % 60
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+    })
+    const dashOffset = computed(() => 283 - (timeLeft.value / (totalMin.value * 60)) * 283)
+
+    const setMinutes = m => { totalMin.value = m; timeLeft.value = m*60 }
+    const customInput = () => {
+      const v = prompt('1-120分钟', '25')
+      if (v && !isNaN(v) && v >=1 && v <=120) setMinutes(Number(v))
+    }
+
+    const startTimer = () => {
+      if (isPaused.value) isPaused.value = false
+      else isRunning.value = true
+      timer = setInterval(() => {
+        if (timeLeft.value > 0) timeLeft.value--
+        else {
+          clearInterval(timer)
+          isRunning.value = false
+          recordFocusTime(totalMin.value)
+          showToast('专注完成！')
+        }
+      }, 1000)
+    }
+    const pauseTimer = () => {
+      clearInterval(timer)
+      isPaused.value = true
+    }
+    
+    const stopTimer = () => {
+      clearInterval(timer)
+      const usedSeconds = totalMin.value * 60 - timeLeft.value
+      const usedMinutes = Math.floor(usedSeconds / 60)
+      
+      if(usedSeconds > 0) {
+        if(confirm('是否记录本次专注？\n规则：不足1分钟不记录，超过1分钟向下取整')){
+          if(usedMinutes >= 1){
+            recordFocusTime(usedMinutes)
+            showToast(`已记录 ${usedMinutes} 分钟专注`)
+          }else{
+            showToast('不足1分钟，未记录')
+          }
+        }
+      }
+      
+      isRunning.value = false
+      isPaused.value = false
+      timeLeft.value = totalMin.value * 60
+    }
+
+    const showTargetModal = ref(false)
+    const setTarget = (item) => {
+        currentTarget.value = item
+        if(!item){
+            modeLabel.value = '专注'
+        }else if(item.title){
+            modeLabel.value = item.title
+        }else if(item.name){
+            modeLabel.value = item.name
+        }
+        showTargetModal.value = false
+    }
+
+    const categories = ref(JSON.parse(localStorage.getItem('xiaozhuanzhu_cats')) || ['全部','工作','学习','生活'])
+    const showCategoryModal = ref(false)
+    const newCat = ref('')
+    watch(categories, v=>{localStorage.setItem('xiaozhuanzhu_cats',JSON.stringify(v))},{deep:true})
+    const addCategory = ()=>{
+        if(!newCat.value.trim()) return
+        if(categories.value.includes(newCat.value)) return showToast('已存在')
+        categories.value.push(newCat.value.trim())
+        newCat.value = ''
+        showToast('添加成功')
+    }
+    const delCategory = (idx)=>{
+        if(categories.value.length<=2) return showToast('至少保留2个')
+        categories.value.splice(idx,1)
+    }
+
+    const todoFilter = ref('全部')
+    const todos = ref(JSON.parse(localStorage.getItem('xiaozhuanzhu_todos')) || [])
+    watch(todos, v=>localStorage.setItem('xiaozhuanzhu_todos',JSON.stringify(v)),{deep:true})
+    
+    const filteredTodos = computed(()=> todoFilter.value==='全部' ? todos.value : todos.value.filter(i=>i.category===todoFilter.value))
+    const sortedTodos = computed(()=>{
+      return [...filteredTodos.value].sort((a,b)=> (a.done||0) - (b.done||0))
+    })
+
+    const showTodoModal = ref(false)
+    const newTodo = ref({title:'',category:'工作',p:'中'})
+    const addTodo = ()=>{
+      if(!newTodo.value.title.trim()) return showToast('请输入名称')
+      todos.value.unshift({...newTodo.value, done:false})
+      newTodo.value = {title:'',category:categories.value[1],p:'中'}
+      showTodoModal.value = false
+      showToast('添加成功')
+    }
+    const deleteTodo = idx=>{
+        todos.value.splice(idx,1)
+        swipedIdx.value = -1
+        showToast('已删除')
+    }
+    const startFocusTodo = t=>{
+        setTarget(t)
+        tab.value='focus'
+    }
+
+    const habits = ref(JSON.parse(localStorage.getItem('xiaozhuanzhu_habits')) || [
+      {icon:'📖',name:'每日阅读',streak:7,done:false,totalFocus:0},
+      {icon:'🏃',name:'日常运动',streak:3,done:false,totalFocus:0}
+    ])
+    watch(habits, v=>localStorage.setItem('xiaozhuanzhu_habits',JSON.stringify(v)),{deep:true})
+    
+    const sortedHabits = computed(()=>{
+      return [...habits.value].sort((a,b)=> a.done - b.done)
+    })
+
+    const habitProgress = computed(()=>{
+      const total = habits.value.length
+      const done = habits.value.filter(h=>h.done).length
+      return total ? Math.round(done/total*100) : 0
+    })
+    const onHabitCheck = (h)=>{
+        h.done = !h.done
+        if(h.done) h.streak++
+        else h.streak = Math.max(0, h.streak-1)
+        showToast(h.done ? '打卡成功' : '已取消')
+    }
+    const showHabitModal = ref(false)
+    const newHabit = ref({icon:'',name:''})
+    const addHabit = ()=>{
+      if(!newHabit.value.name.trim()) return showToast('请输入名称')
+      const icon = newHabit.value.icon || '📌'
+      habits.value.unshift({icon,name:newHabit.value.name,streak:0,done:false,totalFocus:0})
+      newHabit.value = {icon:'',name:''}
+      showHabitModal.value = false
+      showToast('习惯添加成功')
+    }
+    const deleteHabit = idx=>{
+        habits.value.splice(idx,1)
+        swipedIdx.value = -1
+        showToast('已删除')
+    }
+    const startFocusHabit = h=>{
+        setTarget(h)
+        tab.value='focus'
+    }
+
+    const showStats = ref(false)
+    const toast = ref('')
+    const showToast = msg=>{toast.value=msg;setTimeout(()=>toast.value='',2000)}
+    const openSettings = ()=>{showSettingsModal.value=true}
+    const exportData = ()=>showToast('数据导出中')
+
+    const recordFocusTime = mins=>{
+      const today = new Date().toLocaleDateString()
+      const r = JSON.parse(localStorage.getItem('xiaozhuanzhu_record')) || {}
+      const count = JSON.parse(localStorage.getItem('xiaozhuanzhu_count')) || {}
+      r[today] = (r[today]||0) + mins
+      count[today] = (count[today]||0) + 1
+      localStorage.setItem('xiaozhuanzhu_record',JSON.stringify(r))
+      localStorage.setItem('xiaozhuanzhu_count',JSON.stringify(count))
+    }
+
+    const todayFocusTime = computed(()=>{
+      const r = JSON.parse(localStorage.getItem('xiaozhuanzhu_record'))||{}
+      return r[new Date().toLocaleDateString()] || 0
+    })
+    const todayFocusCount = computed(()=>{
+      const c = JSON.parse(localStorage.getItem('xiaozhuanzhu_count'))||{}
+      return c[new Date().toLocaleDateString()] || 0
+    })
+    const totalFocusTime = computed(()=>{
+      const r = JSON.parse(localStorage.getItem('xiaozhuanzhu_record'))||{}
+      return Object.values(r).reduce((a,b)=>a+b,0)
+    })
+    const focusDays = computed(()=>Object.keys(JSON.parse(localStorage.getItem('xiaozhuanzhu_record'))||{}).length)
+    const completedTodos = computed(()=> todos.value.filter(t=>t.done).length)
+    const habitCheckTimes = computed(()=> habits.value.filter(h=>h.done).length)
+
+    const realWeekFocus = computed(()=>{
+      const r = JSON.parse(localStorage.getItem('xiaozhuanzhu_record'))||{}
+      const arr = []
+      for(let i=0;i<7;i++){
+        const d = new Date()
+        d.setDate(d.getDate() - 6 + i)
+        const key = d.toLocaleDateString()
+        arr.push(Math.min(r[key]||0, 100))
+      }
+      return arr
+    })
+
+    const activeSound = ref(null)
+    const sounds = ref([
+      {id:1,name:'雨声',icon:'bi-cloud-rain'},
+      {id:2,name:'森林',icon:'bi-tree'},
+      {id:3,name:'篝火',icon:'bi-fire'}
+    ])
+    const toggleSound = id=>{activeSound.value=activeSound.value===id?null:id;showToast(activeSound.value?'已开启':'已关闭')}
+
+    const clearAllData = ()=>{
+      if(confirm('确定清空所有数据？此操作不可恢复！')){
+        localStorage.clear()
+        todos.value = []
+        habits.value = []
+        categories.value = ['全部','工作','学习','生活']
+        showToast('已清空所有数据')
+      }
+    }
+
+    onMounted(()=>{
+      document.body.className = `theme-${activeTheme.value}`
+    })
+
+    return {
+      tab,navs,activeTheme,changeTheme,showSettingsModal,
+      totalMin,timeLeft,isRunning,isPaused,formatTime,dashOffset,modeLabel,
+      setMinutes,customInput,startTimer,pauseTimer,stopTimer,
+      todoFilter,categories,filteredTodos,sortedTodos,showTodoModal,newTodo,addTodo,deleteTodo,startFocusTodo,
+      habits,sortedHabits,habitProgress,onHabitCheck,showHabitModal,newHabit,addHabit,deleteHabit,startFocusHabit,
+      showStats,toast,showToast,openSettings,exportData,
+      todayFocusTime,todayFocusCount,totalFocusTime,focusDays,completedTodos,habitCheckTimes,realWeekFocus,
+      activeSound,sounds,toggleSound,clearAllData,
+      showCategoryModal,newCat,addCategory,delCategory,
+      showTargetModal,setTarget,currentTarget,
+      startSwipe,endSwipe,swipedIdx,swipedType
+    }
+  }
+}).mount('#app')
+</script>
+</body>
+</html>
