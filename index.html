@@ -85,7 +85,7 @@
 <body>
 
 <div id="app" class="mobile-frame">
-    <div v-if="longPressMenu.show" class="long-press-menu" :style="{left: longPressMenu.x+'px', top: longPressMenu.y+'px'}">
+    <div v-if="longPressMenu.show" class="long-press-menu" @click.stop="closeMenu" :style="{left: longPressMenu.x+'px', top: longPressMenu.y+'px'}">
         <div @click="handleEdit">重命名</div>
         <div class="text-red-500" @click="handleDelete">删除</div>
     </div>
@@ -171,7 +171,8 @@
             <header class="mt-0 mb-3"><h1 class="text-2xl font-bold text-dark">待办任务</h1><div class="flex gap-2 mt-3 flex-wrap"><button v-for="c in categories" @click="todoFilter = c" class="text-xs px-4 py-2 rounded-full font-medium transition-all" :class="todoFilter === c ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">{{ c }}</button><button @click="showCategoryModal=true" class="text-xs px-3 py-2 rounded-full bg-gray-100"><i class="bi bi-gear"></i></button></div></header>
             <main class="space-y-3 pb-20">
                 <div v-for="(t, idx) in sortedTodos" :key="t.id" 
-                     @touchstart="longPressTimer = setTimeout(() => openLongPress($event, h, 'todo', idx), 500)"
+                     @touchstart="longPressTimer = setTimeout(() => openLongPress($event, t, 'todo', idx), 500)"
+		     @click="!isMobileTouch && openLongPress($event, t, 'todo', idx)"
                      @touchend="clearTimeout(longPressTimer)"
 		     @touchmove="clearTimeout(longPressTimer)"
                      class="todo-item p-0 rounded-xl shadow-sm">
@@ -203,6 +204,7 @@
                 <div class="p-5 card-bg rounded-xl shadow-sm"><div class="flex justify-between items-center mb-2"><p class="text-xs text-gray-custom">今日完成率</p><p class="text-lg font-bold text-primary">{{ habitProgress }}%</p></div><div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-primary progress-bar rounded-full" :style="{width: habitProgress + '%'}"></div></div></div>
                 <div v-for="(h, idx) in sortedHabits" :key="h.id" 
                      @touchstart="longPressTimer = setTimeout(() => openLongPress($event, h, 'habit', idx), 500)"
+		     @click="!isMobileTouch && openLongPress($event, h, 'habit', idx)"
                      @touchend="clearTimeout(longPressTimer)"
 		     @touchmove="clearTimeout(longPressTimer)"
                      class="habit-item p-0 rounded-xl shadow-sm">
@@ -338,6 +340,7 @@
 const { createApp, ref, computed, watch, onMounted, onUnmounted } = Vue
 createApp({
   setup() {
+    const isMobileTouch = ref(false)
     const tab = ref('focus')
     const navs = [{ id: 'focus', name: '专注', icon: 'bi-clock', iconFill: 'bi-clock-fill' },{ id: 'todo',  name: '任务', icon: 'bi-check-circle', iconFill: 'bi-check-circle-fill' },{ id: 'habit', name: '习惯', icon: 'bi-heart', iconFill: 'bi-heart-fill' },{ id: 'mine',  name: '我的', icon: 'bi-person', iconFill: 'bi-person-fill' }]
     
@@ -353,6 +356,7 @@ createApp({
     const renameText = ref('')
     
     const openLongPress = (e, item, type, index) => {
+      isMobileTouch.value = !!e.touches
       longPressMenu.value = {
         show: true,
         x: e.touches ? e.touches[0].clientX : e.clientX,
@@ -361,8 +365,8 @@ createApp({
       }
     }
     const closeMenu = () => { 
-      longPressMenu.value.show = false
       clearTimeout(longPressTimer)
+      longPressMenu.value.show = false
    }
     const handleEdit = () => {
       const item = longPressMenu.value.item
@@ -710,7 +714,6 @@ createApp({
       }
       autoClearDoneTodos()
       generateMonthCalendar(); refreshStats()
-      document.addEventListener('click', closeMenu)
     })
 
     onUnmounted(() => {
