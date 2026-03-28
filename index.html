@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小专注</title>
+    <title>小专注 - 极简专注，不负时光</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -54,7 +54,7 @@
         .btn-tap:active { transform: scale(0.95); opacity: 0.8; }
         ::-webkit-scrollbar { display: none; }
         .progress-bar { transition: width 0.8s ease; background-color: var(--primary); }
-        .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 99; }
+        .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; }
         .modal-content { background: var(--card); padding: 20px; border-radius: 16px; width: 80%; max-width: 300px; }
         .text-primary { color: var(--primary); }
         .bg-primary { background-color: var(--primary); }
@@ -65,7 +65,7 @@
         .custom-checkbox { appearance: none; width: 22px; height: 22px; border: 2px solid #d1d5db; border-radius: 6px; position: relative; cursor: pointer; transition: all 0.2s ease; background: white; flex-shrink: 0; }
         .custom-checkbox:checked { background-color: var(--primary); border-color: var(--primary); }
         .custom-checkbox:checked::after { content: '✓'; position: absolute; color: white; font-size: 12px; font-weight: bold; top: 50%; left: 50%; transform: translate(-50%, -50%); }
-        .todo-item, .habit-item { position: relative; overflow: hidden; margin-bottom: 12px; }
+        .todo-item, .habit-item { position: relative; overflow: visible; margin-bottom: 12px; }
         .calendar-day { width: 40px; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: all 0.2; font-size: 14px; font-weight: 50; position: relative; cursor: pointer; }
         .calendar-day.has-data { background: linear-gradient(135deg, rgba(81, 208, 163, 0.15), rgba(81, 208, 163, 0.08)); color: var(--primary); font-weight: 60; }
         .calendar-day.today { border: 2px solid var(--primary); background-color: transparent; }
@@ -76,19 +76,15 @@
         .stat-icon-sm { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; background: transparent; }
         .type-card { background: var(--card); border-radius: 20px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid var(--border); }
         .priority-line { width: 4px; height: 36px; border-radius: 2px; flex-shrink: 0; margin-right: 8px; }
-        .long-press-menu { position: fixed; z-index: 9999; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 120px; }
-        .long-press-menu div { padding: 6px 8px; cursor: pointer; font-size: 14px; border-radius: 6px; }
-        .long-press-menu div:hover { background: var(--primary-light); }
+        .dots-menu { position: relative; }
+        .dropdown-menu { position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 8px; min-width: 120px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 999999 !important; overflow: visible !important; }
+        .dropdown-menu div { padding: 8px 12px; cursor: pointer; font-size: 14px; border-radius: 8px; transition: background 0.2s; }
+        .dropdown-menu div:hover { background: var(--primary-light); }
     </style>
 </head>
 <body>
 
 <div id="app" class="mobile-frame">
-    <div v-if="longPressMenu.show" class="long-press-menu" @click.stop="closeMenu" :style="{left: longPressMenu.x+'px', top: longPressMenu.y+'px'}">
-        <div @click="handleEdit">重命名</div>
-        <div class="text-red-500" @click="handleDelete">删除</div>
-    </div>
-
     <div v-if="tab === 'focus'" class="fixed-sound-bar">
         <p class="text-xs text-gray-custom mb-2 ml-1">白噪音</p>
         <div class="grid grid-cols-4 gap-3">
@@ -106,8 +102,11 @@
     <div v-if="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-5 py-2 rounded-full text-sm animate__animated animate__fadeIn">{{ toast }}</div>
 
     <div v-if="showCategoryModal" class="modal-mask"><div class="modal-content"><h3 class="text-lg font-bold mb-4 text-dark">分类管理</h3><div class="space-y-2 max-h-60 overflow-y-auto mb-3"><div v-for="(c,idx) in categories" class="flex justify-between items-center p-2 border-b"><span>{{c}}</span><button v-if="c!=='全部'" @click="delCategory(idx)" class="text-red-500 text-sm">删除</button></div></div><div class="flex gap-2"><input v-model="newCat" placeholder="输入新分类" class="flex-1 px-3 py-2 border rounded-lg text-sm"><button @click="addCategory" class="px-3 py-2 bg-primary text-white rounded-lg text-sm">添加</button></div><div class="flex gap-2 mt-3"><button @click="showCategoryModal=false" class="flex-1 py-2 bg-gray-100 rounded-lg text-sm">关闭</button></div></div></div>
+    
     <div v-if="showTodoModal" class="modal-mask"><div class="modal-content"><h3 class="text-lg font-bold mb-4 text-dark">新增待办</h3><div class="space-y-3"><input v-model="newTodo.title" type="text" placeholder="任务名称" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><select v-model="newTodo.category" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option v-for="c in categories" v-if="c!=='全部'" :value="c">{{c}}</option></select><select v-model="newTodo.p" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="高">高优先级</option><option value="中">中优先级</option><option value="低">低优先级</option></select><div class="flex gap-2 mt-4"><button @click="showTodoModal = false" class="flex-1 px-4 py-2 bg-gray-100 rounded-lg text-sm">取消</button><button @click="addTodo" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm">保存</button></div></div></div></div>
+    
     <div v-if="showHabitModal" class="modal-mask"><div class="modal-content"><h3 class="text-lg font-bold mb-4 text-dark">新增习惯</h3><div class="space-y-3"><input v-model="newHabit.icon" type="text" placeholder="习惯图标（默认：📌）" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><input v-model="newHabit.name" type="text" placeholder="习惯名称" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><div class="flex gap-2 mt-4"><button @click="showHabitModal = false" class="flex-1 px-4 py-2 bg-gray-100 rounded-lg text-sm">取消</button><button @click="addHabit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm">保存</button></div></div></div></div>
+    
     <div v-if="showRenameModal" class="modal-mask">
         <div class="modal-content">
             <h3 class="text-lg font-bold mb-4 text-dark">重命名</h3>
@@ -118,6 +117,28 @@
             </div>
         </div>
     </div>
+
+    <div v-if="showEditTodoModal" class="modal-mask">
+        <div class="modal-content">
+            <h3 class="text-lg font-bold mb-4 text-dark">编辑任务</h3>
+            <div class="space-y-3">
+                <input v-model="editTodoData.title" type="text" placeholder="任务名称" class="w-full px-3 py-2 border rounded-lg text-sm">
+                <select v-model="editTodoData.category" class="w-full px-3 py-2 border rounded-lg text-sm">
+                    <option v-for="c in categories" v-if="c!=='全部'" :value="c">{{c}}</option>
+                </select>
+                <select v-model="editTodoData.p" class="w-full px-3 py-2 border rounded-lg text-sm">
+                    <option value="高">高优先级</option>
+                    <option value="中">中优先级</option>
+                    <option value="低">低优先级</option>
+                </select>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button @click="showEditTodoModal=false" class="flex-1 py-2 bg-gray-100 rounded-lg text-sm">取消</button>
+                <button @click="saveEditTodo" class="flex-1 py-2 bg-primary text-white rounded-lg text-sm">保存</button>
+            </div>
+        </div>
+    </div>
+    
     <div v-if="showSettingsModal" class="modal-mask"><div class="modal-content"><h3 class="text-lg font-bold mb-4 text-dark">主题设置</h3><div class="grid grid-cols-3 gap-2 mb-4"><button @click="changeTheme('default')" class="p-2 rounded-lg border text-sm" :class="activeTheme === 'default' ? 'bg-primary text-white' : 'bg-white'">默认绿</button><button @click="changeTheme('blue')" class="p-2 rounded-lg border text-sm" :class="activeTheme === 'blue' ? 'bg-primary text-white' : 'bg-white'">清新蓝</button><button @click="changeTheme('pink')" class="p-2 rounded-lg border text-sm" :class="activeTheme === 'pink' ? 'bg-primary text-white' : 'bg-white'">温柔粉</button><button @click="changeTheme('purple')" class="p-2 rounded-lg border text-sm" :class="activeTheme === 'purple' ? 'bg-primary text-white' : 'bg-white'">优雅紫</button><button @click="changeTheme('lime')" class="p-2 rounded-lg border text-sm" :class="activeTheme === 'lime' ? 'bg-primary text-white' : 'bg-white'">青柠绿</button><button @click="changeTheme('sky')" class="p-2 rounded-lg border text-sm" :class="activeTheme === 'sky' ? 'bg-primary text-white' : 'bg-white'">天空蓝</button><button @click="changeTheme('rose')" class="p-2 rounded-lg border text-sm" :class="activeTheme === 'rose' ? 'bg-primary text-white' : 'bg-white'">玫瑰红</button><button @click="changeTheme('dark')" class="p-2 rounded-lg border text-sm col-span-1" :class="activeTheme === 'dark' ? 'bg-primary text-white' : 'bg-white'">夜间模式</button></div><button @click="showSettingsModal = false" class="w-full py-2 bg-primary text-white rounded-lg text-sm">确认</button></div></div>
     <div v-if="showCustomDateModal" class="modal-mask"><div class="modal-content"><h3 class="text-lg font-bold mb-4 text-dark">选择日期范围</h3><div class="space-y-3"><div><label class="text-sm text-gray-600 mb-1 block">开始日期</label><input v-model="customDateStart" type="date" class="w-full px-3 py-2 border rounded-lg text-sm"></div><div><label class="text-sm text-gray-600 mb-1 block">结束日期</label><input v-model="customDateEnd" type="date" class="w-full px-3 py-2 border rounded-lg text-sm"></div><div class="flex gap-2 mt-4"><button @click="showCustomDateModal = false" class="flex-1 px-4 py-2 bg-gray-100 rounded-lg text-sm">取消</button><button @click="applyCustomDateRange" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm">确认</button></div></div></div></div>
 
@@ -160,17 +181,10 @@
         <div v-if="tab === 'todo'" class="animate__animated animate__fadeIn">
             <header class="mt-0 mb-3"><h1 class="text-2xl font-bold text-dark">待办任务</h1><div class="flex gap-2 mt-3 flex-wrap"><button v-for="c in categories" @click="todoFilter = c" class="text-xs px-4 py-2 rounded-full font-medium transition-all" :class="todoFilter === c ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">{{ c }}</button><button @click="showCategoryModal=true" class="text-xs px-3 py-2 rounded-full bg-gray-100"><i class="bi bi-gear"></i></button></div></header>
             <main class="space-y-3 pb-20">
-                <div v-for="(t, idx) in sortedTodos" :key="t.id" 
-                     @touchstart.prevent="longPressTimer = setTimeout(() => openLongPress($event, t, 'todo', idx), 500)"
-                     @touchend.prevent="clearTimeout(longPressTimer)"
-                     @touchmove.prevent="clearTimeout(longPressTimer)"
-                     @mousedown="longPressTimer = setTimeout(() => openLongPress($event, t, 'todo', idx), 500)"
-                     @mouseup="clearTimeout(longPressTimer)"
-                     @mouseleave="clearTimeout(longPressTimer)"
-                     class="todo-item p-0 rounded-xl shadow-sm">
+                <div v-for="(t, idx) in sortedTodos" :key="t.id" class="todo-item p-0 rounded-xl shadow-sm">
                     <div class="todo-content p-4 card-bg rounded-xl">
                         <div class="flex justify-between items-center">
-                            <div class="flex items-center gap-2 flex-1" @click.stop>
+                            <div class="flex items-center gap-2 flex-1">
                                 <div :class="t.p==='高'?'bg-rose-400':t.p==='中'?'bg-amber-400':'bg-emerald-500'" class="priority-line"></div>
                                 <input type="checkbox" :checked="t.done" @change="toggleTodoDone(t, idx)" class="custom-checkbox">
                                 <div class="flex-1">
@@ -181,7 +195,16 @@
                                     </div>
                                 </div>
                             </div>
-                            <i @click.stop="startFocusTodo(t)" class="bi bi-play-circle-fill text-primary text-xl btn-tap ml-2"></i>
+                            <div class="flex items-center gap-2">
+                              <i @click.stop="startFocusTodo(t)" class="bi bi-play-circle-fill text-primary text-xl btn-tap"></i>
+                              <div class="dots-menu btn-tap">
+                                <i @click.stop="openTodoMenu(t,idx)" class="bi bi-three-dots-vertical text-gray-400 text-lg"></i>
+                                <div v-if="activeMenuIdx === idx && activeMenuType === 'todo'" class="dropdown-menu">
+                                  <div @click="editTodo(t)">编辑</div>
+                                  <div @click="deleteTodo(t)" class="text-red-500">删除</div>
+                                </div>
+                              </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -194,17 +217,10 @@
             <header class="mt-0 mb-3"><h1 class="text-2xl font-bold text-dark">习惯养成</h1></header>
             <main class="space-y-4 pb-20">
                 <div class="p-5 card-bg rounded-xl shadow-sm"><div class="flex justify-between items-center mb-2"><p class="text-xs text-gray-custom">今日完成率</p><p class="text-lg font-bold text-primary">{{ habitProgress }}%</p></div><div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-primary progress-bar rounded-full" :style="{width: habitProgress + '%'}"></div></div></div>
-                <div v-for="(h, idx) in sortedHabits" :key="h.id" 
-                     @touchstart.prevent="longPressTimer = setTimeout(() => openLongPress($event, h, 'habit', idx), 500)"
-                     @touchend.prevent="clearTimeout(longPressTimer)"
-                     @touchmove.prevent="clearTimeout(longPressTimer)"
-                     @mousedown="longPressTimer = setTimeout(() => openLongPress($event, h, 'habit', idx), 500)"
-                     @mouseup="clearTimeout(longPressTimer)"
-                     @mouseleave="clearTimeout(longPressTimer)"
-                     class="habit-item p-0 rounded-xl shadow-sm">
+                <div v-for="(h, idx) in sortedHabits" :key="h.id" class="habit-item p-0 rounded-xl shadow-sm">
                     <div class="habit-content p-4 card-bg rounded-xl">
                         <div class="flex justify-between items-center">
-                            <div class="flex items-center gap-3 flex-1" @click.stop>
+                            <div class="flex items-center gap-3 flex-1">
                                 <input type="checkbox" :checked="h.done" @change="toggleHabitDone(h, idx)" class="custom-checkbox">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2">
@@ -217,7 +233,16 @@
                                     </div>
                                 </div>
                             </div>
-                            <i @click.stop="startFocusHabit(h)" class="bi bi-play-circle-fill text-primary text-xl btn-tap ml-2"></i>
+                            <div class="flex items-center gap-2">
+                              <i @click.stop="startFocusHabit(h)" class="bi bi-play-circle-fill text-primary text-xl btn-tap"></i>
+                              <div class="dots-menu btn-tap">
+                                <i @click.stop="openHabitMenu(h,idx)" class="bi bi-three-dots-vertical text-gray-400 text-lg"></i>
+                                <div v-if="activeMenuIdx === idx && activeMenuType === 'habit'" class="dropdown-menu">
+                                  <div @click="editHabit(h)">重命名</div>
+                                  <div @click="deleteHabit(h)" class="text-red-500">删除</div>
+                                </div>
+                              </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -237,90 +262,6 @@
         </div>
     </div>
 
-    <div v-if="showStats" class="fixed inset-0 z-50 card-bg flex flex-col p-4 animate__animated animate__slideInUp" style="overflow-y: auto;">
-        <header class="flex justify-between items-center mb-3">
-            <button @click="showStats = false" class="p-2 rounded-full hover:bg-gray-100"><i class="bi bi-chevron-left text-xl" :style="{ color: 'var(--text)' }"></i></button>
-            <h2 class="text-lg font-bold" :style="{ color: 'var(--text)' }">数据统计</h2>
-            <button @click="exportData" class="p-2 rounded-full hover:bg-gray-100"><i class="bi bi-share text-xl text-primary"></i></button>
-        </header>
-        
-        <div class="type-card mb-4 p-5">
-            <div class="grid grid-cols-4 gap-2 mb-5">
-                <button @click="setStatRange('day')" class="py-1.5 rounded-lg text-xs font-medium transition-all" :class="statRange==='day' ? 'bg-primary text-white' : 'bg-gray-100'">今日</button>
-                <button @click="setStatRange('week')" class="py-1.5 rounded-lg text-xs font-medium transition-all" :class="statRange==='week' ? 'bg-primary text-white' : 'bg-gray-100'">本周</button>
-                <button @click="setStatRange('month')" class="py-1.5 rounded-lg text-xs font-medium transition-all" :class="statRange==='month' ? 'bg-primary text-white' : 'bg-gray-100'">本月</button>
-                <button @click="showCustomDateModal = true" class="py-1.5 rounded-lg text-xs font-medium transition-all" :class="statRange==='custom' ? 'bg-primary text-white' : 'bg-gray-100'">自定义</button>
-            </div>
-            <div v-if="statRange==='custom' && customDateStart" class="text-center text-xs text-primary font-medium mb-5">{{ formatDate(customDateStart) }} - {{ formatDate(customDateEnd || customDateStart) }}</div>
-            
-            <div class="grid grid-cols-3 gap-3 mb-5">
-                <div class="stat-card-simple p-3 text-left">
-                    <div>
-                        <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.count }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">次</span></p>
-                        <p class="text-[11px]" :style="{ color: 'var(--text-gray)' }">专注次数</p>
-                    </div>
-                </div>
-                <div class="stat-card-simple p-3 text-left">
-                    <div>
-                        <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.total }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">分钟</span></p>
-                        <p class="text-[11px]" :style="{ color: 'var(--text-gray)' }">总时长</p>
-                    </div>
-                </div>
-                <div class="stat-card-simple p-3 text-left">
-                    <div>
-                        <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.avg }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">分钟</span></p>
-                        <p class="text-[11px]" :style="{ color: 'var(--text-gray)' }">日均时长</p>
-                    </div>
-                </div>
-            </div>
-            
-            <p class="text-sm font-semibold mb-3" :style="{ color: 'var(--text)' }">专注类型分布</p>
-            <div class="grid grid-cols-2 gap-3">
-                <div class="p-3 rounded-xl" :style="{ background: `rgba(var(--primary-rgb, 81, 208, 163), 0.08)` }">
-                    <div class="flex items-center justify-between">
-                        <div><i class="bi bi-list-task" :style="{ color: 'var(--primary)' }"></i><p class="text-xs mt-1" :style="{ color: 'var(--text-gray)' }">任务专注</p></div>
-                        <div class="text-right">
-                            <p class="text-lg font-bold" :style="{ color: 'var(--primary)' }">{{ statInfo.todoTime || 0 }}<span class="text-xs ml-0.5">分钟</span></p>
-                            <p class="text-[10px]" :style="{ color: 'var(--text-gray)' }">{{ statInfo.todoCount || 0 }} 次</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="p-3 rounded-xl" :style="{ background: `rgba(var(--primary-rgb, 81, 208, 163), 0.08)` }">
-                    <div class="flex items-center justify-between">
-                        <div><i class="bi bi-heart" :style="{ color: 'var(--primary)' }"></i><p class="text-xs mt-1" :style="{ color: 'var(--text-gray)' }">习惯专注</p></div>
-                        <div class="text-right">
-                            <p class="text-lg font-bold" :style="{ color: 'var(--primary)' }">{{ statInfo.habitTime || 0 }}<span class="text-xs ml-0.5">分钟</span></p>
-                            <p class="text-[10px]" :style="{ color: 'var(--text-gray)' }">{{ statInfo.habitCount || 0 }} 次</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="type-card p-4">
-            <div class="flex justify-between items-center mb-3">
-                <p class="text-sm font-semibold" :style="{ color: 'var(--text)' }">月专注日历</p>
-                <div class="flex items-center gap-3">
-                    <button @click="changeMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full" :style="{ background: 'var(--bg)', color: 'var(--primary)' }"><i class="bi bi-chevron-left text-sm"></i></button>
-                    <span class="text-sm font-medium" :style="{ color: 'var(--text)' }">{{ currentYearMonth }}</span>
-                    <button @click="changeMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full" :style="{ background: 'var(--bg)', color: 'var(--primary)' }"><i class="bi bi-chevron-right text-sm"></i></button>
-                </div>
-            </div>
-            <div class="grid grid-cols-7 gap-1 text-center mb-2">
-                <div v-for="day in ['日', '一', '二', '三', '四', '五', '六']" class="text-[11px] font-medium" :style="{ color: 'var(--text-gray)' }">{{ day }}</div>
-            </div>
-            <div class="grid grid-cols-7 gap-1 text-center">
-                <div v-for="(day, index) in monthCalendar" :key="index" class="relative">
-                    <div v-if="day.day" @click="showDayDetail(day.date)" class="calendar-day w-9 h-9 mx-auto cursor-pointer hover:shadow-md transition-shadow" :class="{'has-data': day.hasData, 'today': day.today}" :style="day.hasData ? { background: `rgba(var(--primary-rgb, 81, 208, 163), 0.15)`, color: 'var(--primary)' } : {}">
-                        <span class="text-sm">{{ day.day }}</span>
-                        <span v-if="day.minutes > 0" class="minutes-badge text-[8px]">{{ day.minutes }}</span>
-                    </div>
-                </div>
-            </div>
-            <p class="text-center text-[10px] mt-2" :style="{ color: 'var(--text-gray)' }">有颜色的日期代表有专注记录</p>
-        </div>
-    </div>
-
     <nav class="nav-bar">
         <div v-for="n in navs" @click="switchTab(n.id)" class="flex flex-col items-center gap-1 btn-tap">
             <i :class="[tab === n.id ? n.iconFill : n.icon, 'text-xl', tab === n.id ? 'text-primary' : 'text-gray-400']"></i>
@@ -333,7 +274,6 @@
 const { createApp, ref, computed, watch, onMounted, onUnmounted } = Vue
 createApp({
   setup() {
-    const isMobileTouch = ref(false)
     const tab = ref('focus')
     const navs = [
       { id: 'focus', name: '专注', icon: 'bi-clock', iconFill: 'bi-clock-fill' },
@@ -342,54 +282,69 @@ createApp({
       { id: 'mine',  name: '我的', icon: 'bi-person', iconFill: 'bi-person-fill' }
     ]
     
-    const switchTab = (id) => {
-      tab.value = id
-      showStats.value = false
-      longPressMenu.value.show = false
-    }
+    const activeMenuType = ref('')
+    const activeMenuIdx = ref(-1)
+    const currentEditItem = ref(null)
 
-    let longPressTimer = null
-    const longPressMenu = ref({ show: false, x: 0, y: 0, item: null, type: '', index: -1 })
     const showRenameModal = ref(false)
     const renameText = ref('')
-    
-    const openLongPress = (e, item, type, index) => {
-      isMobileTouch.value = !!e.touches
-      longPressMenu.value = {
-        show: true,
-        x: e.touches ? e.touches[0].clientX : e.clientX,
-        y: e.touches ? e.touches[0].clientY : e.clientY,
-        item, type, index
+    const showEditTodoModal = ref(false)
+    const editTodoData = ref({ title: '', category: '', p: '' })
+
+    const openTodoMenu = (item, idx) => {
+      if(activeMenuType.value === 'todo' && activeMenuIdx.value === idx){
+        activeMenuType.value = ''
+        activeMenuIdx.value = -1
+      }else{
+        activeMenuType.value = 'todo'
+        activeMenuIdx.value = idx
+        currentEditItem.value = item
       }
     }
-    
-    const closeMenu = () => { 
-      clearTimeout(longPressTimer)
-      longPressMenu.value.show = false
+
+    const openHabitMenu = (item, idx) => {
+      if(activeMenuType.value === 'habit' && activeMenuIdx.value === idx){
+        activeMenuType.value = ''
+        activeMenuIdx.value = -1
+      }else{
+        activeMenuType.value = 'habit'
+        activeMenuIdx.value = idx
+        currentEditItem.value = item
+      }
     }
-    
-    const handleEdit = () => {
-      const item = longPressMenu.value.item
-      renameText.value = item.title || item.name || ''
+
+    const editTodo = (item) => {
+      editTodoData.value = {
+        title: item.title,
+        category: item.category,
+        p: item.p
+      }
+      showEditTodoModal.value = true
+      activeMenuType.value = ''
+      activeMenuIdx.value = -1
+    }
+
+    const saveEditTodo = () => {
+      if(!editTodoData.value.title.trim()) return showToast('请输入名称')
+      Object.assign(currentEditItem.value, editTodoData.value)
+      saveAllData(appData.value)
+      showEditTodoModal.value = false
+      showToast('保存成功')
+    }
+
+    const editHabit = (item) => {
+      renameText.value = item.name
       showRenameModal.value = true
-      closeMenu()
+      activeMenuType.value = ''
+      activeMenuIdx.value = -1
     }
     
     const confirmRename = () => {
-      const { type, item } = longPressMenu.value
       if(!renameText.value.trim()) return showToast('请输入名称')
-      if(type === 'todo') item.title = renameText.value
-      if(type === 'habit') item.name = renameText.value
+      currentEditItem.value.name = renameText.value
       saveAllData(appData.value)
       showRenameModal.value = false
       showToast('修改成功')
-    }
-    
-    const handleDelete = () => {
-      const { type, item, index } = longPressMenu.value
-      if(type === 'todo') deleteTodo(item, index)
-      if(type === 'habit') deleteHabit(item, index)
-      closeMenu()
     }
 
     const STORAGE_KEY = 'xiaozhuanzhu_all_data'
@@ -536,38 +491,31 @@ createApp({
     const todoFilter = ref('全部')
     const filteredTodos = computed(()=> todoFilter.value==='全部' ? todos.value : todos.value.filter(i=>i.category===todoFilter.value))
     const sortedTodos = computed(()=>[...filteredTodos.value].sort((a,b)=> (a.done?1:0) - (b.done?1:0)))
-    const toggleTodoDone = (item, idx) => { 
-      const targetTodo = todos.value.find(t => t.id === item.id); 
-      if(targetTodo) { 
-        targetTodo.done = !targetTodo.done; 
-        saveAllData(appData.value)
-        showToast(targetTodo.done ? '任务已完成' : '已取消任务') 
-      } 
+    const toggleTodoDone = (item) => { 
+      item.done = !item.done
+      saveAllData(appData.value)
+      showToast(item.done ? '任务已完成' : '已取消任务') 
     }
     
     const sortedHabits = computed(()=>[...habits.value].sort((a,b)=> (a.done?1:0)-(b.done?1:0)))
     const habitProgress = computed(()=>{ const total=habits.value.length; const done=habits.value.filter(h=>h.done).length; return total?Math.round(done/total*100):0 })
-    const toggleHabitDone = (item, idx) => { 
-      const targetHabit = habits.value.find(h => h.id === item.id); 
-      if(!targetHabit) return; 
+    const toggleHabitDone = (item) => { 
       const today = new Date().toLocaleDateString(); 
-      if(targetHabit.done){ 
-        targetHabit.done = false; targetHabit.lastCheck = ''; targetHabit.streak = 0;
+      if(item.done){ 
+        item.done = false; item.lastCheck = ''; item.streak = 0;
       } else { 
-        if(targetHabit.lastCheck === today) { showToast('今日已打卡'); return; } 
-        targetHabit.done = true; targetHabit.lastCheck = today; targetHabit.streak += 1;
+        if(item.lastCheck === today) { showToast('今日已打卡'); return; } 
+        item.done = true; item.lastCheck = today; item.streak += 1;
       } 
-      saveAllData(appData.value); showToast(targetHabit.done ? '打卡成功' : '已取消打卡');
+      saveAllData(appData.value); showToast(item.done ? '打卡成功' : '已取消打卡');
     };
     
-    const deleteTodo = (item, idx)=>{ 
-      const index = todos.value.findIndex(t => t.id === item.id); 
-      if(index !== -1) todos.value.splice(index,1); 
+    const deleteTodo = (item)=>{ 
+      todos.value = todos.value.filter(t => t.id !== item.id)
       saveAllData(appData.value); showToast('已删除') 
     }
-    const deleteHabit = (item, idx)=>{ 
-      const index = habits.value.findIndex(h => h.id === item.id); 
-      if(index !== -1) habits.value.splice(index,1); 
+    const deleteHabit = (item)=>{ 
+      habits.value = habits.value.filter(h => h.id !== item.id)
       saveAllData(appData.value); showToast('已删除') 
     }
     const startFocusTodo = t=>{ setTarget(t); tab.value='focus' }
@@ -708,6 +656,13 @@ createApp({
       }
     }
 
+    const switchTab = (id) => {
+      tab.value = id
+      showStats.value = false
+      activeMenuType.value = ''
+      activeMenuIdx.value = -1
+    }
+
     onMounted(()=>{ 
       document.body.className=`theme-${activeTheme.value}`; updatePrimaryRgb();
       const today = new Date().toLocaleDateString()
@@ -717,10 +672,15 @@ createApp({
       }
       autoClearDoneTodos()
       generateMonthCalendar(); refreshStats()
+
+      document.addEventListener('click', () => {
+        activeMenuType.value = ''
+        activeMenuIdx.value = -1
+      })
     })
 
     onUnmounted(() => {
-      document.removeEventListener('click', closeMenu)
+      document.removeEventListener('click', () => {})
     })
 
     watch(showStats, (val)=>{ if(val) refreshStats() })
@@ -730,12 +690,16 @@ createApp({
       countMode,switchMode,totalMin,timeLeft,elapsedSeconds,isRunning,isPaused,formatTime,dashOffset,modeLabel,setMinutes,clickToSetTime,startTimer,pauseTimer,stopTimer,
       todoFilter,categories,filteredTodos,sortedTodos,showTodoModal,newTodo,addTodo,deleteTodo,toggleTodoDone,startFocusTodo,
       habits,sortedHabits,habitProgress,toggleHabitDone,showHabitModal,newHabit,addHabit,deleteHabit,startFocusHabit,
-      showStats,toast,showToast,openSettings,longPressMenu,openLongPress,closeMenu,handleEdit,handleDelete,showRenameModal,renameText,confirmRename,
+      showStats,toast,showToast,openSettings,
       todayFocusTime,todayFocusCount,todayTodoFocus,todayTodoCount,todayHabitFocus,todayHabitCount,totalFocusTimeDisplay,
       activeSound,sounds,toggleSound,clearAllData, showCategoryModal,newCat,addCategory,delCategory,
       exportData,importData,
       statRange,statInfo,showCustomDateModal,customDateStart,customDateEnd,setStatRange,applyCustomDateRange,formatDate,showDayDetail,refreshStats,
-      monthCalendar,currentYearMonth,changeMonth,longPressTimer
+      monthCalendar,currentYearMonth,changeMonth,
+
+      activeMenuType,activeMenuIdx,openTodoMenu,openHabitMenu,
+      showRenameModal,renameText,confirmRename,editHabit,
+      showEditTodoModal,editTodoData,editTodo,saveEditTodo,currentEditItem
     }
   }
 }).mount('#app')
