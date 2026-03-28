@@ -157,7 +157,7 @@
                 </div>
                 
                 <!-- 控制按钮美化 -->
-                <div class="flex items-center gap-10 mb-6">
+                <div class="flex items-center gap-10 mt-6 mb-6">
                     <button v-if="!isRunning" @click="startTimer" class="px-14 py-3 bg-primary text-white rounded-full font-bold shadow-md btn-tap">开始专注</button>
                     <template v-else>
                         <button @click="pauseTimer" class="w-16 h-16 card-bg rounded-full shadow flex items-center justify-center text-dark btn-tap"><i :class="['bi', isPaused ? 'bi-play-fill' : 'bi-pause-fill', 'text-2xl']"></i></button>
