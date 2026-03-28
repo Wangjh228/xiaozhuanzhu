@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小专注 - 专注习惯追踪</title>
+    <title>小专注 - 极简专注，不负时光</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -29,11 +29,29 @@
         /* 全局统一苹果字体 */
         body { background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Noto Sans SC", sans-serif; transition: all 0.3s ease; }
         .mobile-frame { width: 100%; height: 100vh; background: var(--bg); position: relative; overflow: hidden; display: flex; flex-direction: column; transition: all 0.3s ease; }
-        .page-content { flex: 1; overflow-y: auto; padding: 0.6rem 1rem 5rem 1rem; }
+        .page-content { flex: 1; overflow-y: auto; padding: 0rem 1rem 5rem 1rem; }
         .timer-circle-bg { stroke: var(--border); }
         .timer-circle-prog { stroke: var(--primary); transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
         .nav-bar { height: 70px; background: var(--card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; padding-bottom: 12px; z-index: 999; position: fixed; bottom: 0; left: 0; right: 0; }
-        .fixed-stats-bar { position: fixed; bottom: 70px; left: 0; right: 0; text-align: center; padding: 8px 0; z-index: 998; font-size: 12px; color: var(--primary); background: transparent; backdrop-filter: none; border: none; box-shadow: none; }
+        .fixed-stats-bar { 
+            position: fixed; 
+            bottom: 70px; 
+            left: 0; 
+            right: 0; 
+            text-align: center; 
+            padding: 8px 0; 
+            z-index: 50; 
+            font-size: 12px; 
+            color: var(--primary);
+        }
+        .fixed-sound-bar {
+            position: fixed;
+            bottom: calc(70px + 38px);
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            z-index: 50;
+        }
         .btn-tap:active { transform: scale(0.95); opacity: 0.8; }
         ::-webkit-scrollbar { display: none; }
         .progress-bar { transition: width 0.8s ease; background-color: var(--primary); }
@@ -49,11 +67,11 @@
         .custom-checkbox:checked { background-color: var(--primary); border-color: var(--primary); }
         .custom-checkbox:checked::after { content: '✓'; position: absolute; color: white; font-size: 12px; font-weight: bold; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .todo-item, .habit-item { position: relative; overflow: hidden; margin-bottom: 12px; }
-        .calendar-day { width: 40px; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: all 0.2; font-size: 14px; font-weight: 500; position: relative; cursor: pointer; }
-        .calendar-day.has-data { background: linear-gradient(135deg, rgba(81, 208, 163, 0.15), rgba(81, 208, 163, 0.08)); color: var(--primary); font-weight: 600; }
+        .calendar-day { width: 40px; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: all 0.2; font-size: 14px; font-weight: 50; position: relative; cursor: pointer; }
+        .calendar-day.has-data { background: linear-gradient(135deg, rgba(81, 208, 163, 0.15), rgba(81, 208, 163, 0.08)); color: var(--primary); font-weight: 60; }
         .calendar-day.today { border: 2px solid var(--primary); background-color: transparent; }
         .calendar-day.today.has-data { background: linear-gradient(135deg, rgba(81, 208, 163, 0.2), rgba(81, 208, 163, 0.1)); border: 2px solid var(--primary); }
-        .calendar-day .minutes-badge { font-size: 9px; font-weight: 600; color: var(--primary); margin-top: 2px; background: transparent; }
+        .calendar-day .minutes-badge { font-size: 9px; font-weight: 60; color: var(--primary); margin-top: 2px; background: transparent; }
         .focus-stats { font-size: 10px; color: var(--text-gray); margin-top: 4px; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .stat-card-simple { background: var(--card); border-radius: 12px; padding: 12px; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border); }
         .stat-icon-sm { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; background: transparent; }
@@ -72,6 +90,16 @@
         <div class="text-red-500" @click="handleDelete">删除</div>
     </div>
 
+    <!-- 固定白噪音条 - 仅专注页显示，紧贴统计条上方 -->
+    <div v-if="tab === 'focus'" class="fixed-sound-bar">
+        <p class="text-xs text-gray-custom mb-2 ml-1">白噪音</p>
+        <div class="grid grid-cols-4 gap-3">
+            <div v-for="s in sounds" @click="toggleSound(s.id)" class="flex flex-col items-center p-3 rounded-xl transition-all btn-tap" :class="activeSound === s.id ? 'bg-primary-light text-primary' : 'card-bg text-gray-400'"><i :class="['bi', s.icon, 'text-xl mb-1']"></i><span class="text-xs">{{ s.name }}</span></div>
+            <div @click="showToast('即将上线')" class="flex flex-col items-center p-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 btn-tap"><i class="bi bi-plus-lg text-xl"></i></div>
+        </div>
+    </div>
+
+    <!-- 固定统计条 -->
     <div v-if="tab !== 'mine'" class="fixed-stats-bar">
         <span v-if="tab === 'focus'">今日总专注：{{ todayFocusTime }} 分钟 · {{ todayFocusCount }} 次</span>
         <span v-if="tab === 'todo'">今日任务专注：{{ todayTodoFocus }} 分钟 · {{ todayTodoCount }} 次</span>
@@ -98,48 +126,48 @@
 
     <div class="page-content">
         <div v-if="tab === 'focus'" class="animate__animated animate__fadeIn">
-            <header class="flex justify-between items-center mt-1 mb-3">
+            <header class="flex justify-between items-center mt-0 mb-2">
                 <i @click="showStats = true" class="bi bi-graph-up-arrow text-xl text-gray-custom btn-tap"></i>
                 <h1 class="text-lg font-bold text-dark">小专注</h1>
                 <i @click="openSettings" class="bi bi-gear text-xl text-gray-custom btn-tap"></i>
             </header>
-            <main class="flex flex-col items-center justify-start gap-4 mt-0">
-                <!-- 时钟整体再下移 -->
-                <div class="relative w-56 h-56 flex items-center justify-center mt-24" @click="clickToSetTime">
+            <main class="flex flex-col items-center justify-start gap-3 mt-0 pb-32">
+                <!-- 时钟：字体改细，圆环改细 -->
+                <div class="relative w-64 h-64 flex items-center justify-center mt-20" @click="clickToSetTime">
                     <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                        <circle class="timer-circle-bg" cx="50" cy="50" r="45" fill="none" stroke-width="3"/>
-                        <circle class="timer-circle-prog" cx="50" cy="50" r="45" fill="none" stroke-width="4" :style="{ strokeDasharray: 283, strokeDashoffset: dashOffset }"/>
+                        <circle class="timer-circle-bg" cx="50" cy="50" r="45" fill="none" stroke-width="2"/>
+                        <circle class="timer-circle-prog" cx="50" cy="50" r="45" fill="none" stroke-width="3" :style="{ strokeDasharray: 283, strokeDashoffset: dashOffset }"/>
                     </svg>
                     <div class="absolute flex flex-col items-center justify-center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pt-4">
-                        <span class="text-5xl font-light text-dark tabular-nums">{{ formatTime }}</span>
+                        <span class="text-5xl font-semibold text-dark tabular-nums">{{ formatTime }}</span>
                         <p class="text-xs text-primary font-bold mt-2">{{ modeLabel }}</p>
                     </div>
                 </div>
 
-                <div class="flex gap-3 mb-1">
-                    <button @click="switchMode('down')" class="px-3 py-1 rounded-full text-sm" :class="countMode === 'down' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">倒计时</button>
-                    <button @click="switchMode('up')" class="px-3 py-1 rounded-full text-sm" :class="countMode === 'up' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">正计时</button>
+                <!-- 模式切换美化 -->
+                <div class="flex gap-4 mb-2">
+                    <button @click="switchMode('down')" class="px-5 py-2 rounded-full text-sm font-medium" :class="countMode === 'down' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">倒计时</button>
+                    <button @click="switchMode('up')" class="px-5 py-2 rounded-full text-sm font-medium" :class="countMode === 'up' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">正计时</button>
                 </div>
                 
-                <div class="flex items-center gap-10 mb-4">
-                    <button v-if="!isRunning" @click="startTimer" class="px-10 py-4 bg-primary text-white rounded-full font-bold shadow-sm btn-tap">开始专注</button>
-                    <template v-else><button @click="pauseTimer" class="w-14 h-14 card-bg rounded-full shadow-sm flex items-center justify-center text-dark btn-tap"><i :class="['bi', isPaused ? 'bi-play-fill' : 'bi-pause-fill', 'text-xl']"></i></button><button @click="stopTimer" class="w-14 h-14 card-bg rounded-full shadow-sm flex items-center justify-center text-red-400 btn-tap"><i class="bi bi-stop-fill text-xl"></i></button></template>
-                </div>
-                <div class="w-full pb-4">
-                    <p class="text-xs text-gray-custom mb-2 ml-1">白噪音</p>
-                    <div class="grid grid-cols-4 gap-3">
-                        <div v-for="s in sounds" @click="toggleSound(s.id)" class="flex flex-col items-center p-4 rounded-xl transition-all btn-tap" :class="activeSound === s.id ? 'bg-primary-light text-primary' : 'card-bg text-gray-400'"><i :class="['bi', s.icon, 'text-xl mb-1']"></i><span class="text-xs">{{ s.name }}</span></div>
-                        <div @click="showToast('即将上线')" class="flex flex-col items-center p-4 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 btn-tap"><i class="bi bi-plus-lg text-xl"></i></div>
-                    </div>
+                <!-- 控制按钮美化 -->
+                <div class="flex items-center gap-10 mb-2">
+                    <button v-if="!isRunning" @click="startTimer" class="px-14 py-3 bg-primary text-white rounded-full font-bold shadow-md btn-tap">开始专注</button>
+                    <template v-else>
+                        <button @click="pauseTimer" class="w-16 h-16 card-bg rounded-full shadow flex items-center justify-center text-dark btn-tap"><i :class="['bi', isPaused ? 'bi-play-fill' : 'bi-pause-fill', 'text-2xl']"></i></button>
+                        <button @click="stopTimer" class="w-16 h-16 card-bg rounded-full shadow flex items-center justify-center text-red-400 btn-tap"><i class="bi bi-stop-fill text-2xl"></i></button>
+                    </template>
                 </div>
             </main>
         </div>
 
         <div v-if="tab === 'todo'" class="animate__animated animate__fadeIn">
-            <header class="mt-1 mb-3"><h1 class="text-2xl font-bold text-dark">待办任务</h1><div class="flex gap-2 mt-3 flex-wrap"><button v-for="c in categories" @click="todoFilter = c" class="text-xs px-4 py-2 rounded-full font-medium transition-all" :class="todoFilter === c ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">{{ c }}</button><button @click="showCategoryModal=true" class="text-xs px-3 py-2 rounded-full bg-gray-100"><i class="bi bi-gear"></i></button></div></header>
+            <header class="mt-0 mb-3"><h1 class="text-2xl font-bold text-dark">待办任务</h1><div class="flex gap-2 mt-3 flex-wrap"><button v-for="c in categories" @click="todoFilter = c" class="text-xs px-4 py-2 rounded-full font-medium transition-all" :class="todoFilter === c ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">{{ c }}</button><button @click="showCategoryModal=true" class="text-xs px-3 py-2 rounded-full bg-gray-100"><i class="bi bi-gear"></i></button></div></header>
             <main class="space-y-3 pb-20">
                 <div v-for="(t, idx) in sortedTodos" :key="t.id" 
                      @contextmenu.prevent="openLongPress($event, t, 'todo', idx)"
+                     @touchstart.prevent="longPressTimer = setTimeout(() => openLongPress($event, t, 'todo', idx), 500)"
+                     @touchend.prevent="clearTimeout(longPressTimer)"
                      class="todo-item p-0 rounded-xl shadow-sm">
                     <div class="todo-content p-4 card-bg rounded-xl">
                         <div class="flex justify-between items-center">
@@ -164,11 +192,13 @@
         </div>
 
         <div v-if="tab === 'habit'" class="animate__animated animate__fadeIn">
-            <header class="mt-1 mb-3"><h1 class="text-2xl font-bold text-dark">习惯养成</h1></header>
+            <header class="mt-0 mb-3"><h1 class="text-2xl font-bold text-dark">习惯养成</h1></header>
             <main class="space-y-4 pb-20">
                 <div class="p-5 card-bg rounded-xl shadow-sm"><div class="flex justify-between items-center mb-2"><p class="text-xs text-gray-custom">今日完成率</p><p class="text-lg font-bold text-primary">{{ habitProgress }}%</p></div><div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-primary progress-bar rounded-full" :style="{width: habitProgress + '%'}"></div></div></div>
                 <div v-for="(h, idx) in sortedHabits" :key="h.id" 
                      @contextmenu.prevent="openLongPress($event, h, 'habit', idx)"
+                     @touchstart.prevent="longPressTimer = setTimeout(() => openLongPress($event, h, 'habit', idx), 500)"
+                     @touchend.prevent="clearTimeout(longPressTimer)"
                      class="habit-item p-0 rounded-xl shadow-sm">
                     <div class="habit-content p-4 card-bg rounded-xl">
                         <div class="flex justify-between items-center">
@@ -195,7 +225,7 @@
         </div>
 
         <div v-if="tab === 'mine'" class="animate__animated animate__fadeIn">
-            <header class="mt-1 mb-4"><h1 class="text-2xl font-bold text-dark">我的</h1></header>
+            <header class="mt-0 mb-4"><h1 class="text-2xl font-bold text-dark">我的</h1></header>
             <div class="space-y-3">
                 <div class="p-4 card-bg rounded-xl shadow-sm"><p class="text-sm font-bold mb-2">今日专注</p><p class="text-xl text-primary font-bold">{{ todayFocusTime }} 分钟 · {{ todayFocusCount }} 次</p></div>
                 <div class="p-4 card-bg rounded-xl shadow-sm"><p class="text-sm font-bold mb-2">累计专注</p><p class="text-lg text-dark font-bold">{{ totalFocusTimeDisplay }} 分钟</p></div>
@@ -222,7 +252,6 @@
             <div v-if="statRange==='custom' && customDateStart" class="text-center text-xs text-primary font-medium mb-5">{{ formatDate(customDateStart) }} - {{ formatDate(customDateEnd || customDateStart) }}</div>
             
             <div class="grid grid-cols-3 gap-3 mb-5">
-                <!-- 删除图标，文字左移 -->
                 <div class="stat-card-simple p-3 text-left">
                     <div>
                         <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.count }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">次</span></p>
@@ -269,10 +298,11 @@
         <div class="type-card p-4">
             <div class="flex justify-between items-center mb-3">
                 <p class="text-sm font-semibold" :style="{ color: 'var(--text)' }">月专注日历</p>
-                <div class="flex gap-2">
-                    <button @click="changeMonth(-1)" class="p-1 rounded-full" :style="{ background: 'var(--bg)', color: 'var(--primary)' }"><i class="bi bi-chevron-left text-xs"></i></button>
+                <!-- 日历箭头完美对齐 -->
+                <div class="flex items-center gap-3">
+                    <button @click="changeMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full" :style="{ background: 'var(--bg)', color: 'var(--primary)' }"><i class="bi bi-chevron-left text-sm"></i></button>
                     <span class="text-sm font-medium" :style="{ color: 'var(--text)' }">{{ currentYearMonth }}</span>
-                    <button @click="changeMonth(1)" class="p-1 rounded-full" :style="{ background: 'var(--bg)', color: 'var(--primary)' }"><i class="bi bi-chevron-right text-xs"></i></button>
+                    <button @click="changeMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full" :style="{ background: 'var(--bg)', color: 'var(--primary)' }"><i class="bi bi-chevron-right text-sm"></i></button>
                 </div>
             </div>
             <div class="grid grid-cols-7 gap-1 text-center mb-2">
@@ -311,6 +341,7 @@ createApp({
       longPressMenu.value.show = false
     }
 
+    let longPressTimer = null
     const longPressMenu = ref({ show: false, x: 0, y: 0, item: null, type: '', index: -1 })
     const showRenameModal = ref(false)
     const renameText = ref('')
@@ -430,7 +461,6 @@ createApp({
     })
 
     const setMinutes = m=>{totalMin.value=m; timeLeft.value=m*60}
-    // 点击时钟修改时间（仅倒计时、未运行时生效）
     const clickToSetTime = () => {
       if(isRunning.value || countMode.value !== 'down') return
       let v=prompt('请输入专注时长（1-120分钟）', totalMin.value); 
@@ -691,7 +721,7 @@ createApp({
       activeSound,sounds,toggleSound,clearAllData, showCategoryModal,newCat,addCategory,delCategory,
       exportData,importData,
       statRange,statInfo,showCustomDateModal,customDateStart,customDateEnd,setStatRange,applyCustomDateRange,formatDate,showDayDetail,refreshStats,
-      monthCalendar,currentYearMonth,changeMonth 
+      monthCalendar,currentYearMonth,changeMonth,longPressTimer
     }
   }
 }).mount('#app')
