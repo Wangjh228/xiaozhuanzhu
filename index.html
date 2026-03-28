@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小专注 - 极简专注，不负时光</title>
+    <title>小专注</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -131,12 +131,12 @@
                 <h1 class="text-lg font-bold text-dark">小专注</h1>
                 <i @click="openSettings" class="bi bi-gear text-xl text-gray-custom btn-tap"></i>
             </header>
-            <main class="flex flex-col items-center justify-start gap-3 mt-0 pb-4 flex-1">
+            <main class="flex flex-col items-center justify-start mt-0 pb-4 flex-1">
                 <!-- 时钟：字体改细，圆环改细 -->
                 <div class="relative w-64 h-64 flex items-center justify-center mt-24" @click="clickToSetTime">
                     <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
                         <circle class="timer-circle-bg" cx="50" cy="50" r="45" fill="none" stroke-width="2"/>
-                        <circle class="timer-circle-prog" cx="50" cy="50" r="45" fill="none" stroke-width="3" :style="{ strokeDasharray: 283, strokeDashoffset: dashOffset }"/>
+                        <circle class="timer-circle-prog" cx="50" cy="50" r="45" fill="none" stroke-width="4" :style="{ strokeDasharray: 283, strokeDashoffset: dashOffset }"/>
                     </svg>
     
                     <!-- 时间数字 - 完美居中 -->
@@ -152,13 +152,13 @@
 
                 <!-- 模式切换美化 -->
                 <div class="flex gap-5 mb-2">
-                    <button @click="switchMode('down')" class="px-4 py-2 rounded-full text-sm font-medium" :class="countMode === 'down' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">倒计时</button>
-                    <button @click="switchMode('up')" class="px-4 py-2 rounded-full text-sm font-medium" :class="countMode === 'up' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">正计时</button>
+                    <button @click="switchMode('down')" class="px-1.5 py-1 rounded-full text-sm font-medium" :class="countMode === 'down' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">倒计时</button>
+                    <button @click="switchMode('up')" class="px-1.5 py-1 rounded-full text-sm font-medium" :class="countMode === 'up' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">正计时</button>
                 </div>
                 
                 <!-- 控制按钮美化 -->
-                <div class="flex items-center gap-10 mt-6 mb-6">
-                    <button v-if="!isRunning" @click="startTimer" class="px-14 py-3 bg-primary text-white rounded-full font-bold shadow-md btn-tap">开始专注</button>
+                <div class="flex items-center gap-10 mt-9 mb-6">
+                    <button v-if="!isRunning" @click="startTimer" class="px-14 py-4 bg-primary text-white rounded-full font-bold shadow-md btn-tap text-xl">开始专注</button>
                     <template v-else>
                         <button @click="pauseTimer" class="w-16 h-16 card-bg rounded-full shadow flex items-center justify-center text-dark btn-tap"><i :class="['bi', isPaused ? 'bi-play-fill' : 'bi-pause-fill', 'text-2xl']"></i></button>
                         <button @click="stopTimer" class="w-16 h-16 card-bg rounded-full shadow flex items-center justify-center text-red-400 btn-tap"><i class="bi bi-stop-fill text-2xl"></i></button>
