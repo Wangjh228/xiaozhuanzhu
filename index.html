@@ -26,7 +26,6 @@
         .theme-lime { --primary: #22c55e; --primary-light: #f0fdf4; --primary-dark: #16a34a; }
         .theme-sky { --primary: #0ea5e9; --primary-light: #f0f9ff; --primary-dark: #0284c7; }
         .theme-rose { --primary: #f43f5e; --primary-light: #fef2f2; --primary-dark: #e11d48; }
-        /* 全局统一苹果字体 */
         body { background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Noto Sans SC", sans-serif; transition: all 0.3s ease; }
         .mobile-frame { width: 100%; height: 100vh; background: var(--bg); position: relative; overflow: hidden; display: flex; flex-direction: column; transition: all 0.3s ease; }
         .page-content { flex: 1; overflow-y: auto; padding: 0rem 1rem 5rem 1rem; }
@@ -90,7 +89,6 @@
         <div class="text-red-500" @click="handleDelete">删除</div>
     </div>
 
-    <!-- 固定白噪音条 - 仅专注页显示，紧贴统计条上方 -->
     <div v-if="tab === 'focus'" class="fixed-sound-bar">
         <p class="text-xs text-gray-custom mb-2 ml-1">白噪音</p>
         <div class="grid grid-cols-4 gap-3">
@@ -99,7 +97,6 @@
         </div>
     </div>
 
-    <!-- 固定统计条 -->
     <div v-if="tab !== 'mine'" class="fixed-stats-bar">
         <span v-if="tab === 'focus'">今日总专注：{{ todayFocusTime }} 分钟 · {{ todayFocusCount }} 次</span>
         <span v-if="tab === 'todo'">今日任务专注：{{ todayTodoFocus }} 分钟 · {{ todayTodoCount }} 次</span>
@@ -132,31 +129,24 @@
                 <i @click="openSettings" class="bi bi-gear text-xl text-gray-custom btn-tap"></i>
             </header>
             <main class="flex flex-col items-center justify-start mt-0 pb-4 flex-1">
-                <!-- 时钟：字体改细，圆环改细 -->
                 <div class="relative w-64 h-64 flex items-center justify-center mt-24" @click="clickToSetTime">
                     <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
                         <circle class="timer-circle-bg" cx="50" cy="50" r="45" fill="none" stroke-width="2"/>
                         <circle class="timer-circle-prog" cx="50" cy="50" r="45" fill="none" stroke-width="4" :style="{ strokeDasharray: 283, strokeDashoffset: dashOffset }"/>
                     </svg>
-    
-                    <!-- 时间数字 - 完美居中 -->
                     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                         <span class="text-5xl font-semibold text-dark tabular-nums">{{ formatTime }}</span>
                     </div>
-    
-                    <!-- "专注"文字 - 在时间下方 -->
                     <div class="absolute left-1/2 -translate-x-1/2" :style="{ top: 'calc(50% + 35px)' }">
                         <p class="text-xs text-primary font-bold">{{ modeLabel }}</p>
                     </div>
                 </div>
 
-                <!-- 模式切换美化 -->
                 <div class="flex gap-7 mb-2">
                     <button @click="switchMode('down')" class="px-1.5 py-1 rounded-full text-sm font-medium" :class="countMode === 'down' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">倒计时</button>
                     <button @click="switchMode('up')" class="px-1.5 py-1 rounded-full text-sm font-medium" :class="countMode === 'up' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">正计时</button>
                 </div>
                 
-                <!-- 控制按钮美化 -->
                 <div class="flex items-center gap-10 mt-9 mb-6">
                     <button v-if="!isRunning" @click="startTimer" class="px-14 py-4 bg-primary text-white rounded-full font-bold shadow-md btn-tap text-xl">开始专注</button>
                     <template v-else>
@@ -171,10 +161,12 @@
             <header class="mt-0 mb-3"><h1 class="text-2xl font-bold text-dark">待办任务</h1><div class="flex gap-2 mt-3 flex-wrap"><button v-for="c in categories" @click="todoFilter = c" class="text-xs px-4 py-2 rounded-full font-medium transition-all" :class="todoFilter === c ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">{{ c }}</button><button @click="showCategoryModal=true" class="text-xs px-3 py-2 rounded-full bg-gray-100"><i class="bi bi-gear"></i></button></div></header>
             <main class="space-y-3 pb-20">
                 <div v-for="(t, idx) in sortedTodos" :key="t.id" 
+                     @mousedown="longPressTimer = setTimeout(() => openLongPress($event, t, 'todo', idx), 500)"
+                     @mouseup="clearTimeout(longPressTimer)"
+                     @mouseleave="clearTimeout(longPressTimer)"
                      @touchstart="longPressTimer = setTimeout(() => openLongPress($event, t, 'todo', idx), 500)"
-		     @click="!isMobileTouch && openLongPress($event, t, 'todo', idx)"
                      @touchend="clearTimeout(longPressTimer)"
-		     @touchmove="clearTimeout(longPressTimer)"
+                     @touchmove="clearTimeout(longPressTimer)"
                      class="todo-item p-0 rounded-xl shadow-sm">
                     <div class="todo-content p-4 card-bg rounded-xl">
                         <div class="flex justify-between items-center">
@@ -203,10 +195,12 @@
             <main class="space-y-4 pb-20">
                 <div class="p-5 card-bg rounded-xl shadow-sm"><div class="flex justify-between items-center mb-2"><p class="text-xs text-gray-custom">今日完成率</p><p class="text-lg font-bold text-primary">{{ habitProgress }}%</p></div><div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-primary progress-bar rounded-full" :style="{width: habitProgress + '%'}"></div></div></div>
                 <div v-for="(h, idx) in sortedHabits" :key="h.id" 
+                     @mousedown="longPressTimer = setTimeout(() => openLongPress($event, h, 'habit', idx), 500)"
+                     @mouseup="clearTimeout(longPressTimer)"
+                     @mouseleave="clearTimeout(longPressTimer)"
                      @touchstart="longPressTimer = setTimeout(() => openLongPress($event, h, 'habit', idx), 500)"
-		     @click="!isMobileTouch && openLongPress($event, h, 'habit', idx)"
                      @touchend="clearTimeout(longPressTimer)"
-		     @touchmove="clearTimeout(longPressTimer)"
+                     @touchmove="clearTimeout(longPressTimer)"
                      class="habit-item p-0 rounded-xl shadow-sm">
                     <div class="habit-content p-4 card-bg rounded-xl">
                         <div class="flex justify-between items-center">
@@ -306,7 +300,6 @@
         <div class="type-card p-4">
             <div class="flex justify-between items-center mb-3">
                 <p class="text-sm font-semibold" :style="{ color: 'var(--text)' }">月专注日历</p>
-                <!-- 日历箭头完美对齐 -->
                 <div class="flex items-center gap-3">
                     <button @click="changeMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full" :style="{ background: 'var(--bg)', color: 'var(--primary)' }"><i class="bi bi-chevron-left text-sm"></i></button>
                     <span class="text-sm font-medium" :style="{ color: 'var(--text)' }">{{ currentYearMonth }}</span>
@@ -342,7 +335,12 @@ createApp({
   setup() {
     const isMobileTouch = ref(false)
     const tab = ref('focus')
-    const navs = [{ id: 'focus', name: '专注', icon: 'bi-clock', iconFill: 'bi-clock-fill' },{ id: 'todo',  name: '任务', icon: 'bi-check-circle', iconFill: 'bi-check-circle-fill' },{ id: 'habit', name: '习惯', icon: 'bi-heart', iconFill: 'bi-heart-fill' },{ id: 'mine',  name: '我的', icon: 'bi-person', iconFill: 'bi-person-fill' }]
+    const navs = [
+      { id: 'focus', name: '专注', icon: 'bi-clock', iconFill: 'bi-clock-fill' },
+      { id: 'todo',  name: '任务', icon: 'bi-check-circle', iconFill: 'bi-check-circle-fill' },
+      { id: 'habit', name: '习惯', icon: 'bi-heart', iconFill: 'bi-heart-fill' },
+      { id: 'mine',  name: '我的', icon: 'bi-person', iconFill: 'bi-person-fill' }
+    ]
     
     const switchTab = (id) => {
       tab.value = id
@@ -364,16 +362,19 @@ createApp({
         item, type, index
       }
     }
+    
     const closeMenu = () => { 
       clearTimeout(longPressTimer)
       longPressMenu.value.show = false
-   }
+    }
+    
     const handleEdit = () => {
       const item = longPressMenu.value.item
       renameText.value = item.title || item.name || ''
       showRenameModal.value = true
       closeMenu()
     }
+    
     const confirmRename = () => {
       const { type, item } = longPressMenu.value
       if(!renameText.value.trim()) return showToast('请输入名称')
@@ -383,6 +384,7 @@ createApp({
       showRenameModal.value = false
       showToast('修改成功')
     }
+    
     const handleDelete = () => {
       const { type, item, index } = longPressMenu.value
       if(type === 'todo') deleteTodo(item, index)
@@ -427,6 +429,7 @@ createApp({
       document.body.className = `theme-${t}`; updatePrimaryRgb(); 
       saveAllData(appData.value); showToast('主题已切换') 
     }
+    
     const updatePrimaryRgb = () => { 
       const styles = getComputedStyle(document.body); 
       const primaryColor = styles.getPropertyValue('--primary').trim(); 
