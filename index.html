@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小专注 - 极简专注，不负时光</title>
+    <title>小专注</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -161,12 +161,12 @@
             <header class="mt-0 mb-3"><h1 class="text-2xl font-bold text-dark">待办任务</h1><div class="flex gap-2 mt-3 flex-wrap"><button v-for="c in categories" @click="todoFilter = c" class="text-xs px-4 py-2 rounded-full font-medium transition-all" :class="todoFilter === c ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">{{ c }}</button><button @click="showCategoryModal=true" class="text-xs px-3 py-2 rounded-full bg-gray-100"><i class="bi bi-gear"></i></button></div></header>
             <main class="space-y-3 pb-20">
                 <div v-for="(t, idx) in sortedTodos" :key="t.id" 
+                     @touchstart.prevent="longPressTimer = setTimeout(() => openLongPress($event, t, 'todo', idx), 500)"
+                     @touchend.prevent="clearTimeout(longPressTimer)"
+                     @touchmove.prevent="clearTimeout(longPressTimer)"
                      @mousedown="longPressTimer = setTimeout(() => openLongPress($event, t, 'todo', idx), 500)"
                      @mouseup="clearTimeout(longPressTimer)"
                      @mouseleave="clearTimeout(longPressTimer)"
-                     @touchstart="longPressTimer = setTimeout(() => openLongPress($event, t, 'todo', idx), 500)"
-                     @touchend="clearTimeout(longPressTimer)"
-                     @touchmove="clearTimeout(longPressTimer)"
                      class="todo-item p-0 rounded-xl shadow-sm">
                     <div class="todo-content p-4 card-bg rounded-xl">
                         <div class="flex justify-between items-center">
@@ -195,12 +195,12 @@
             <main class="space-y-4 pb-20">
                 <div class="p-5 card-bg rounded-xl shadow-sm"><div class="flex justify-between items-center mb-2"><p class="text-xs text-gray-custom">今日完成率</p><p class="text-lg font-bold text-primary">{{ habitProgress }}%</p></div><div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-primary progress-bar rounded-full" :style="{width: habitProgress + '%'}"></div></div></div>
                 <div v-for="(h, idx) in sortedHabits" :key="h.id" 
+                     @touchstart.prevent="longPressTimer = setTimeout(() => openLongPress($event, h, 'habit', idx), 500)"
+                     @touchend.prevent="clearTimeout(longPressTimer)"
+                     @touchmove.prevent="clearTimeout(longPressTimer)"
                      @mousedown="longPressTimer = setTimeout(() => openLongPress($event, h, 'habit', idx), 500)"
                      @mouseup="clearTimeout(longPressTimer)"
                      @mouseleave="clearTimeout(longPressTimer)"
-                     @touchstart="longPressTimer = setTimeout(() => openLongPress($event, h, 'habit', idx), 500)"
-                     @touchend="clearTimeout(longPressTimer)"
-                     @touchmove="clearTimeout(longPressTimer)"
                      class="habit-item p-0 rounded-xl shadow-sm">
                     <div class="habit-content p-4 card-bg rounded-xl">
                         <div class="flex justify-between items-center">
