@@ -26,9 +26,10 @@
         .theme-lime { --primary: #22c55e; --primary-light: #f0fdf4; --primary-dark: #16a34a; }
         .theme-sky { --primary: #0ea5e9; --primary-light: #f0f9ff; --primary-dark: #0284c7; }
         .theme-rose { --primary: #f43f5e; --primary-light: #fef2f2; --primary-dark: #e11d48; }
-        body { background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: -apple-system, "Noto Sans SC", sans-serif; transition: all 0.3s ease; }
+        /* 全局统一苹果字体 */
+        body { background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Noto Sans SC", sans-serif; transition: all 0.3s ease; }
         .mobile-frame { width: 100%; height: 100vh; background: var(--bg); position: relative; overflow: hidden; display: flex; flex-direction: column; transition: all 0.3s ease; }
-        .page-content { flex: 1; overflow-y: auto; padding: 1rem; padding-bottom: 5rem; }
+        .page-content { flex: 1; overflow-y: auto; padding: 0.6rem 1rem 5rem 1rem; }
         .timer-circle-bg { stroke: var(--border); }
         .timer-circle-prog { stroke: var(--primary); transition: stroke-dashoffset 1s linear; stroke-linecap: round; }
         .nav-bar { height: 70px; background: var(--card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; padding-bottom: 12px; z-index: 999; position: fixed; bottom: 0; left: 0; right: 0; }
@@ -97,20 +98,21 @@
 
     <div class="page-content">
         <div v-if="tab === 'focus'" class="animate__animated animate__fadeIn">
-            <header class="flex justify-between items-center mt-2 mb-6">
+            <header class="flex justify-between items-center mt-1 mb-3">
                 <i @click="showStats = true" class="bi bi-graph-up-arrow text-xl text-gray-custom btn-tap"></i>
                 <h1 class="text-lg font-bold text-dark">小专注</h1>
                 <i @click="openSettings" class="bi bi-gear text-xl text-gray-custom btn-tap"></i>
             </header>
-            <main class="flex flex-col items-center justify-around gap-6">
-                <div class="relative w-60 h-60 flex items-center justify-center rounded-full">
+            <main class="flex flex-col items-center justify-start gap-4 mt-0">
+                <!-- 时钟整体再下移 -->
+                <div class="relative w-56 h-56 flex items-center justify-center mt-24" @click="clickToSetTime">
                     <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
                         <circle class="timer-circle-bg" cx="50" cy="50" r="45" fill="none" stroke-width="3"/>
                         <circle class="timer-circle-prog" cx="50" cy="50" r="45" fill="none" stroke-width="4" :style="{ strokeDasharray: 283, strokeDashoffset: dashOffset }"/>
                     </svg>
-                    <div class="absolute flex flex-col items-center">
-                        <span class="text-6xl font-light text-dark tabular-nums">{{ formatTime }}</span>
-                        <p class="text-xs text-primary font-bold mt-3">{{ modeLabel }}</p>
+                    <div class="absolute flex flex-col items-center justify-center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pt-4">
+                        <span class="text-5xl font-light text-dark tabular-nums">{{ formatTime }}</span>
+                        <p class="text-xs text-primary font-bold mt-2">{{ modeLabel }}</p>
                     </div>
                 </div>
 
@@ -118,14 +120,7 @@
                     <button @click="switchMode('down')" class="px-3 py-1 rounded-full text-sm" :class="countMode === 'down' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">倒计时</button>
                     <button @click="switchMode('up')" class="px-3 py-1 rounded-full text-sm" :class="countMode === 'up' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">正计时</button>
                 </div>
-
-                <div v-if="!isRunning && countMode === 'down'" class="w-full mb-2">
-                    <p class="text-xs text-gray-custom text-center mb-3">选择专注时长</p>
-                    <div class="flex gap-4 justify-center">
-                        <button v-for="m in [25,45,60]" @click="setMinutes(m)" class="w-16 h-16 rounded-full flex items-center justify-center text-lg font-medium shadow-sm transition-all" :class="totalMin === m ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">{{ m }}</button>
-                        <button @click="customInput" class="w-16 h-16 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center shadow-sm"><i class="bi bi-pencil"></i></button>
-                    </div>
-                </div>
+                
                 <div class="flex items-center gap-10 mb-4">
                     <button v-if="!isRunning" @click="startTimer" class="px-10 py-4 bg-primary text-white rounded-full font-bold shadow-sm btn-tap">开始专注</button>
                     <template v-else><button @click="pauseTimer" class="w-14 h-14 card-bg rounded-full shadow-sm flex items-center justify-center text-dark btn-tap"><i :class="['bi', isPaused ? 'bi-play-fill' : 'bi-pause-fill', 'text-xl']"></i></button><button @click="stopTimer" class="w-14 h-14 card-bg rounded-full shadow-sm flex items-center justify-center text-red-400 btn-tap"><i class="bi bi-stop-fill text-xl"></i></button></template>
@@ -141,7 +136,7 @@
         </div>
 
         <div v-if="tab === 'todo'" class="animate__animated animate__fadeIn">
-            <header class="mt-2 mb-3"><h1 class="text-2xl font-bold text-dark">待办任务</h1><div class="flex gap-2 mt-4 flex-wrap"><button v-for="c in categories" @click="todoFilter = c" class="text-xs px-4 py-2 rounded-full font-medium transition-all" :class="todoFilter === c ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">{{ c }}</button><button @click="showCategoryModal=true" class="text-xs px-3 py-2 rounded-full bg-gray-100"><i class="bi bi-gear"></i></button></div></header>
+            <header class="mt-1 mb-3"><h1 class="text-2xl font-bold text-dark">待办任务</h1><div class="flex gap-2 mt-3 flex-wrap"><button v-for="c in categories" @click="todoFilter = c" class="text-xs px-4 py-2 rounded-full font-medium transition-all" :class="todoFilter === c ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'">{{ c }}</button><button @click="showCategoryModal=true" class="text-xs px-3 py-2 rounded-full bg-gray-100"><i class="bi bi-gear"></i></button></div></header>
             <main class="space-y-3 pb-20">
                 <div v-for="(t, idx) in sortedTodos" :key="t.id" 
                      @contextmenu.prevent="openLongPress($event, t, 'todo', idx)"
@@ -169,7 +164,7 @@
         </div>
 
         <div v-if="tab === 'habit'" class="animate__animated animate__fadeIn">
-            <header class="mt-2 mb-3"><h1 class="text-2xl font-bold text-dark">习惯养成</h1></header>
+            <header class="mt-1 mb-3"><h1 class="text-2xl font-bold text-dark">习惯养成</h1></header>
             <main class="space-y-4 pb-20">
                 <div class="p-5 card-bg rounded-xl shadow-sm"><div class="flex justify-between items-center mb-2"><p class="text-xs text-gray-custom">今日完成率</p><p class="text-lg font-bold text-primary">{{ habitProgress }}%</p></div><div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-primary progress-bar rounded-full" :style="{width: habitProgress + '%'}"></div></div></div>
                 <div v-for="(h, idx) in sortedHabits" :key="h.id" 
@@ -200,8 +195,8 @@
         </div>
 
         <div v-if="tab === 'mine'" class="animate__animated animate__fadeIn">
-            <header class="mt-2 mb-6"><h1 class="text-2xl font-bold text-dark">我的</h1></header>
-            <div class="space-y-4">
+            <header class="mt-1 mb-4"><h1 class="text-2xl font-bold text-dark">我的</h1></header>
+            <div class="space-y-3">
                 <div class="p-4 card-bg rounded-xl shadow-sm"><p class="text-sm font-bold mb-2">今日专注</p><p class="text-xl text-primary font-bold">{{ todayFocusTime }} 分钟 · {{ todayFocusCount }} 次</p></div>
                 <div class="p-4 card-bg rounded-xl shadow-sm"><p class="text-sm font-bold mb-2">累计专注</p><p class="text-lg text-dark font-bold">{{ totalFocusTimeDisplay }} 分钟</p></div>
                 <div class="grid grid-cols-2 gap-3"><button @click="showStats=true" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-bar-chart text-xl text-primary"></i><p class="text-xs mt-1">数据统计</p></button><button @click="openSettings" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-palette text-xl text-primary"></i><p class="text-xs mt-1">主题设置</p></button><button @click="exportData" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-download text-xl text-primary"></i><p class="text-xs mt-1">导出数据</p></button><button @click="importData" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-upload text-xl text-primary"></i><p class="text-xs mt-1">导入数据</p></button></div>
@@ -211,13 +206,12 @@
     </div>
 
     <div v-if="showStats" class="fixed inset-0 z-50 card-bg flex flex-col p-4 animate__animated animate__slideInUp" style="overflow-y: auto;">
-        <header class="flex justify-between items-center mb-4">
+        <header class="flex justify-between items-center mb-3">
             <button @click="showStats = false" class="p-2 rounded-full hover:bg-gray-100"><i class="bi bi-chevron-left text-xl" :style="{ color: 'var(--text)' }"></i></button>
             <h2 class="text-lg font-bold" :style="{ color: 'var(--text)' }">数据统计</h2>
             <button @click="exportData" class="p-2 rounded-full hover:bg-gray-100"><i class="bi bi-share text-xl text-primary"></i></button>
         </header>
         
-        <!-- 整个上半部分：1个大卡片 -->
         <div class="type-card mb-4 p-5">
             <div class="grid grid-cols-4 gap-2 mb-5">
                 <button @click="setStatRange('day')" class="py-1.5 rounded-lg text-xs font-medium transition-all" :class="statRange==='day' ? 'bg-primary text-white' : 'bg-gray-100'">今日</button>
@@ -228,22 +222,20 @@
             <div v-if="statRange==='custom' && customDateStart" class="text-center text-xs text-primary font-medium mb-5">{{ formatDate(customDateStart) }} - {{ formatDate(customDateEnd || customDateStart) }}</div>
             
             <div class="grid grid-cols-3 gap-3 mb-5">
-                <div class="stat-card-simple flex items-center gap-2 p-3 text-left">
-                    <div class="stat-icon-sm w-8 h-8 flex items-center justify-center"><i class="bi bi-bar-chart-steps text-lg" :style="{ color: 'var(--primary)' }"></i></div>
+                <!-- 删除图标，文字左移 -->
+                <div class="stat-card-simple p-3 text-left">
                     <div>
                         <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.count }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">次</span></p>
                         <p class="text-[11px]" :style="{ color: 'var(--text-gray)' }">专注次数</p>
                     </div>
                 </div>
-                <div class="stat-card-simple flex items-center gap-2 p-3 text-left">
-                    <div class="stat-icon-sm w-8 h-8 flex items-center justify-center"><i class="bi bi-clock-history text-lg" :style="{ color: 'var(--primary)' }"></i></div>
+                <div class="stat-card-simple p-3 text-left">
                     <div>
                         <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.total }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">分钟</span></p>
                         <p class="text-[11px]" :style="{ color: 'var(--text-gray)' }">总时长</p>
                     </div>
                 </div>
-                <div class="stat-card-simple flex items-center gap-2 p-3 text-left">
-                    <div class="stat-icon-sm w-8 h-8 flex items-center justify-center"><i class="bi bi-calculator text-lg" :style="{ color: 'var(--primary)' }"></i></div>
+                <div class="stat-card-simple p-3 text-left">
                     <div>
                         <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.avg }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">分钟</span></p>
                         <p class="text-[11px]" :style="{ color: 'var(--text-gray)' }">日均时长</p>
@@ -274,7 +266,6 @@
             </div>
         </div>
         
-        <!-- 月日历：单独1个卡片 -->
         <div class="type-card p-4">
             <div class="flex justify-between items-center mb-3">
                 <p class="text-sm font-semibold" :style="{ color: 'var(--text)' }">月专注日历</p>
@@ -439,7 +430,12 @@ createApp({
     })
 
     const setMinutes = m=>{totalMin.value=m; timeLeft.value=m*60}
-    const customInput = ()=>{let v=prompt('1-120分钟','25'); if(v&&!isNaN(v)&&v>=1&&v<=120) setMinutes(Number(v))}
+    // 点击时钟修改时间（仅倒计时、未运行时生效）
+    const clickToSetTime = () => {
+      if(isRunning.value || countMode.value !== 'down') return
+      let v=prompt('请输入专注时长（1-120分钟）', totalMin.value); 
+      if(v&&!isNaN(v)&&v>=1&&v<=120) setMinutes(Number(v))
+    }
     
     const startTimer = ()=>{
       if(isPaused.value) isPaused.value=false
@@ -687,7 +683,7 @@ createApp({
     
     return { 
       tab,navs,activeTheme,changeTheme,showSettingsModal,switchTab,
-      countMode,switchMode,totalMin,timeLeft,elapsedSeconds,isRunning,isPaused,formatTime,dashOffset,modeLabel,setMinutes,customInput,startTimer,pauseTimer,stopTimer,
+      countMode,switchMode,totalMin,timeLeft,elapsedSeconds,isRunning,isPaused,formatTime,dashOffset,modeLabel,setMinutes,clickToSetTime,startTimer,pauseTimer,stopTimer,
       todoFilter,categories,filteredTodos,sortedTodos,showTodoModal,newTodo,addTodo,deleteTodo,toggleTodoDone,startFocusTodo,
       habits,sortedHabits,habitProgress,toggleHabitDone,showHabitModal,newHabit,addHabit,deleteHabit,startFocusHabit,
       showStats,toast,showToast,openSettings,longPressMenu,openLongPress,closeMenu,handleEdit,handleDelete,showRenameModal,renameText,confirmRename,
