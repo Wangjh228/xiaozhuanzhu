@@ -6,6 +6,7 @@
     <title>小专注</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nosleep.js@0.12.0/dist/NoSleep.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
@@ -363,6 +364,35 @@ createApp({
     let activeNodes = [];
     let currentSoundId = null;
     
+    // ---------- 屏幕常亮控制 ----------
+    let noSleep = null;
+    
+    const initNoSleep = () => {
+      if (typeof NoSleep !== 'undefined' && !noSleep) {
+        noSleep = new NoSleep();
+      }
+    };
+    
+    const enableWakeLock = () => {
+      if (noSleep && !noSleep.isEnabled) {
+        try {
+          noSleep.enable();
+        } catch (err) {
+          console.error('启用屏幕常亮失败:', err);
+        }
+      }
+    };
+    
+    const disableWakeLock = () => {
+      if (noSleep && noSleep.isEnabled) {
+        try {
+          noSleep.disable();
+        } catch (err) {
+          console.error('关闭屏幕常亮失败:', err);
+        }
+      }
+    };
+    
     function getCtx() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -528,7 +558,7 @@ createApp({
       activeNodes.push(src,gain);
     }
     
-    // Vue 其他逻辑保持不变，仅修改倒计时结束逻辑并集成声音切换
+    // Vue 其他逻辑
     const tab = ref('focus')
     const navs = [
       { id: 'focus', name: '专注', icon: 'bi-clock', iconFill: 'bi-clock-fill' },
@@ -696,11 +726,13 @@ createApp({
     const startTimer = ()=>{
       if(isPaused.value) isPaused.value=false
       else isRunning.value=true
+      enableWakeLock();
       timer = setInterval(()=>{
         if(countMode.value === 'down'){
           if(timeLeft.value>0) timeLeft.value--
           else {
             clearInterval(timer); isRunning.value=false
+            disableWakeLock();
             isNaturalEnd = true;
             playBeep();
             recordFocusTime(totalMin.value);
@@ -713,9 +745,15 @@ createApp({
       },1000)
     }
 
-    const pauseTimer = ()=>{ clearInterval(timer); isPaused.value=true }
+    const pauseTimer = ()=>{ 
+      clearInterval(timer); 
+      isPaused.value=true
+      disableWakeLock();
+    }
+    
     const stopTimer = ()=>{
       clearInterval(timer)
+      disableWakeLock();
       let usedMinutes = 0
       let usedSeconds = 0
 
@@ -945,6 +983,8 @@ createApp({
       }
       autoClearDoneTodos()
       generateMonthCalendar(); refreshStats()
+      
+      initNoSleep();
 
       document.addEventListener('click', () => {
         activeMenuType.value = ''
@@ -954,6 +994,7 @@ createApp({
 
     onUnmounted(() => {
       document.removeEventListener('click', () => {})
+      disableWakeLock();
       stopAll();
     })
 
@@ -981,3 +1022,4 @@ createApp({
 </script>
 </body>
 </html>
+```
