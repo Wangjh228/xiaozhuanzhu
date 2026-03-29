@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小专注 - 极简专注，不负时光</title>
+    <title>小专注</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -100,6 +100,90 @@
     </div>
 
     <div v-if="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-5 py-2 rounded-full text-sm animate__animated animate__fadeIn">{{ toast }}</div>
+
+    <div v-if="showStats" class="fixed inset-0 z-50 card-bg flex flex-col p-4 animate__animated animate__slideInUp" style="overflow-y: auto;">
+        <header class="flex justify-between items-center mb-3">
+            <button @click="showStats = false" class="p-2 rounded-full hover:bg-gray-100"><i class="bi bi-chevron-left text-xl" :style="{ color: 'var(--text)' }"></i></button>
+            <h2 class="text-lg font-bold" :style="{ color: 'var(--text)' }">数据统计</h2>
+            <button @click="exportData" class="p-2 rounded-full hover:bg-gray-100"><i class="bi bi-share text-xl text-primary"></i></button>
+        </header>
+        
+        <div class="type-card mb-4 p-5">
+            <div class="grid grid-cols-4 gap-2 mb-5">
+                <button @click="setStatRange('day')" class="py-1.5 rounded-lg text-xs font-medium transition-all" :class="statRange==='day' ? 'bg-primary text-white' : 'bg-gray-100'">今日</button>
+                <button @click="setStatRange('week')" class="py-1.5 rounded-lg text-xs font-medium transition-all" :class="statRange==='week' ? 'bg-primary text-white' : 'bg-gray-100'">本周</button>
+                <button @click="setStatRange('month')" class="py-1.5 rounded-lg text-xs font-medium transition-all" :class="statRange==='month' ? 'bg-primary text-white' : 'bg-gray-100'">本月</button>
+                <button @click="showCustomDateModal = true" class="py-1.5 rounded-lg text-xs font-medium transition-all" :class="statRange==='custom' ? 'bg-primary text-white' : 'bg-gray-100'">自定义</button>
+            </div>
+            <div v-if="statRange==='custom' && customDateStart" class="text-center text-xs text-primary font-medium mb-5">{{ formatDate(customDateStart) }} - {{ formatDate(customDateEnd || customDateStart) }}</div>
+            
+            <div class="grid grid-cols-3 gap-3 mb-5">
+                <div class="stat-card-simple p-3 text-left">
+                    <div>
+                        <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.count }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">次</span></p>
+                        <p class="text-[11px]" :style="{ color: 'var(--text-gray)' }">专注次数</p>
+                    </div>
+                </div>
+                <div class="stat-card-simple p-3 text-left">
+                    <div>
+                        <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.total }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">分钟</span></p>
+                        <p class="text-[11px]" :style="{ color: 'var(--text-gray)' }">总时长</p>
+                    </div>
+                </div>
+                <div class="stat-card-simple p-3 text-left">
+                    <div>
+                        <p class="text-xl font-bold" :style="{ color: 'var(--text)' }">{{ statInfo.avg }}<span class="text-xs ml-0.5" :style="{ color: 'var(--text-gray)' }">分钟</span></p>
+                        <p class="text-[11px]" :style="{ color: 'var(--text-gray)' }">日均时长</p>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="text-sm font-semibold mb-3" :style="{ color: 'var(--text)' }">专注类型分布</p>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="p-3 rounded-xl" :style="{ background: `rgba(var(--primary-rgb, 81, 208, 163), 0.08)` }">
+                    <div class="flex items-center justify-between">
+                        <div><i class="bi bi-list-task" :style="{ color: 'var(--primary)' }"></i><p class="text-xs mt-1" :style="{ color: 'var(--text-gray)' }">任务专注</p></div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold" :style="{ color: 'var(--primary)' }">{{ statInfo.todoTime || 0 }}<span class="text-xs ml-0.5">分钟</span></p>
+                            <p class="text-[10px]" :style="{ color: 'var(--text-gray)' }">{{ statInfo.todoCount || 0 }} 次</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3 rounded-xl" :style="{ background: `rgba(var(--primary-rgb, 81, 208, 163), 0.08)` }">
+                    <div class="flex items-center justify-between">
+                        <div><i class="bi bi-heart" :style="{ color: 'var(--primary)' }"></i><p class="text-xs mt-1" :style="{ color: 'var(--text-gray)' }">习惯专注</p></div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold" :style="{ color: 'var(--primary)' }">{{ statInfo.habitTime || 0 }}<span class="text-xs ml-0.5">分钟</span></p>
+                            <p class="text-[10px]" :style="{ color: 'var(--text-gray)' }">{{ statInfo.habitCount || 0 }} 次</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="type-card p-4">
+            <div class="flex justify-between items-center mb-3">
+                <p class="text-sm font-semibold" :style="{ color: 'var(--text)' }">月专注日历</p>
+                <div class="flex items-center gap-3">
+                    <button @click="changeMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full" :style="{ background: 'var(--bg)', color: 'var(--primary)' }"><i class="bi bi-chevron-left text-sm"></i></button>
+                    <span class="text-sm font-medium" :style="{ color: 'var(--text)' }">{{ currentYearMonth }}</span>
+                    <button @click="changeMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full" :style="{ background: 'var(--bg)', color: 'var(--primary)' }"><i class="bi bi-chevron-right text-sm"></i></button>
+                </div>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center mb-2">
+                <div v-for="day in ['日', '一', '二', '三', '四', '五', '六']" class="text-[11px] font-medium" :style="{ color: 'var(--text-gray)' }">{{ day }}</div>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center">
+                <div v-for="(day, index) in monthCalendar" :key="index" class="relative">
+                    <div v-if="day.day" @click="showDayDetail(day.date)" class="calendar-day w-9 h-9 mx-auto cursor-pointer hover:shadow-md transition-shadow" :class="{'has-data': day.hasData, 'today': day.today}" :style="day.hasData ? { background: `rgba(var(--primary-rgb, 81, 208, 163), 0.15)`, color: 'var(--primary)' } : {}">
+                        <span class="text-sm">{{ day.day }}</span>
+                        <span v-if="day.minutes > 0" class="minutes-badge text-[8px]">{{ day.minutes }}</span>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center text-[10px] mt-2" :style="{ color: 'var(--text-gray)' }">有颜色的日期代表有专注记录</p>
+        </div>
+    </div>
 
     <div v-if="showCategoryModal" class="modal-mask"><div class="modal-content"><h3 class="text-lg font-bold mb-4 text-dark">分类管理</h3><div class="space-y-2 max-h-60 overflow-y-auto mb-3"><div v-for="(c,idx) in categories" class="flex justify-between items-center p-2 border-b"><span>{{c}}</span><button v-if="c!=='全部'" @click="delCategory(idx)" class="text-red-500 text-sm">删除</button></div></div><div class="flex gap-2"><input v-model="newCat" placeholder="输入新分类" class="flex-1 px-3 py-2 border rounded-lg text-sm"><button @click="addCategory" class="px-3 py-2 bg-primary text-white rounded-lg text-sm">添加</button></div><div class="flex gap-2 mt-3"><button @click="showCategoryModal=false" class="flex-1 py-2 bg-gray-100 rounded-lg text-sm">关闭</button></div></div></div>
     
