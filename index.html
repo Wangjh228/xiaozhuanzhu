@@ -66,11 +66,11 @@
         .custom-checkbox:checked { background-color: var(--primary); border-color: var(--primary); }
         .custom-checkbox:checked::after { content: '✓'; position: absolute; color: white; font-size: 12px; font-weight: bold; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .todo-item, .habit-item { position: relative; overflow: visible; margin-bottom: 12px; }
-        .calendar-day { width: 40px; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: all 0.2; font-size: 14px; font-weight: 50; position: relative; cursor: pointer; }
-        .calendar-day.has-data { background: linear-gradient(135deg, rgba(81, 208, 163, 0.15), rgba(81, 208, 163, 0.08)); color: var(--primary); font-weight: 60; }
+        .calendar-day { width: 40px; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: all 0.2; font-size: 14px; font-weight: 300; position: relative; cursor: pointer; }
+        .calendar-day.has-data { background: linear-gradient(135deg, rgba(81, 208, 163, 0.15), rgba(81, 208, 163, 0.08)); color: var(--primary); font-weight: 300; }
         .calendar-day.today { border: 2px solid var(--primary); background-color: transparent; }
         .calendar-day.today.has-data { background: linear-gradient(135deg, rgba(81, 208, 163, 0.2), rgba(81, 208, 163, 0.1)); border: 2px solid var(--primary); }
-        .calendar-day .minutes-badge { font-size: 9px; font-weight: 60; color: var(--primary); margin-top: 2px; background: transparent; }
+        .calendar-day .minutes-badge { font-size: 9px; font-weight: 300; color: var(--primary); margin-top: 2px; background: transparent; }
         .focus-stats { font-size: 10px; color: var(--text-gray); margin-top: 4px; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .stat-card-simple { background: var(--card); border-radius: 12px; padding: 12px; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border); }
         .stat-icon-sm { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; background: transparent; }
@@ -93,7 +93,6 @@
         </div>
     </div>
 
-    <!-- 修正：底栏统计信息现在显示“今日总专注”即所有专注来源（普通专注+任务专注+习惯专注）的总和与总次数 -->
     <div v-if="tab !== 'mine'" class="fixed-stats-bar">
         <span v-if="tab === 'focus'">今日总专注：{{ totalTodayFocusAll }} 分钟 · {{ totalTodayFocusAllCount }} 次</span>
         <span v-if="tab === 'todo'">今日任务专注：{{ todayTodoFocus }} 分钟 · {{ todayTodoCount }} 次</span>
@@ -160,8 +159,6 @@
                     </div>
                 </div>
             </div>
-            <!-- 增加普通专注（无绑定）的额外展示，让用户更清晰看到所有来源 -->
-            <div class="mt-3 text-xs text-center text-gray-custom">* 普通专注时长已计入总时长与总次数</div>
         </div>
         
         <div class="type-card p-4">
@@ -184,7 +181,7 @@
                     </div>
                 </div>
             </div>
-            <p class="text-center text-[10px] mt-2" :style="{ color: 'var(--text-gray)' }">有颜色的日期代表有专注记录</p>
+            <p class="text-center text-[10px] mt-2" :style="{ color: 'var(--text-gray)' }">日期下面的数字代表当日专注分钟数</p>
         </div>
     </div>
 
@@ -341,7 +338,6 @@
         <div v-if="tab === 'mine'" class="animate__animated animate__fadeIn">
             <header class="mt-0 mb-4"><h1 class="text-2xl font-bold text-dark">我的</h1></header>
             <div class="space-y-3">
-                <!-- 修正：我的页面今日专注同时汇总所有来源 -->
                 <div class="p-4 card-bg rounded-xl shadow-sm"><p class="text-sm font-bold mb-2">今日专注</p><p class="text-xl text-primary font-bold">{{ totalTodayFocusAll }} 分钟 · {{ totalTodayFocusAllCount }} 次</p></div>
                 <div class="p-4 card-bg rounded-xl shadow-sm"><p class="text-sm font-bold mb-2">累计专注</p><p class="text-lg text-dark font-bold">{{ totalFocusTimeDisplay }} 分钟</p></div>
                 <div class="grid grid-cols-2 gap-3"><button @click="showStats=true" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-bar-chart text-xl text-primary"></i><p class="text-xs mt-1">数据统计</p></button><button @click="openSettings" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-palette text-xl text-primary"></i><p class="text-xs mt-1">主题设置</p></button><button @click="exportData" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-download text-xl text-primary"></i><p class="text-xs mt-1">导出数据</p></button><button @click="importData" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-upload text-xl text-primary"></i><p class="text-xs mt-1">导入数据</p></button></div>
@@ -362,6 +358,177 @@
 const { createApp, ref, computed, watch, onMounted, onUnmounted } = Vue
 createApp({
   setup() {
+    // ---------- 白噪音音频引擎 ----------
+    let audioCtx = null;
+    let activeNodes = [];
+    let currentSoundId = null;
+    
+    function getCtx() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+    
+    function createPinkNoiseBuffer(ctx, seconds) {
+      const sampleRate = ctx.sampleRate;
+      const buffer = ctx.createBuffer(1, sampleRate * seconds, sampleRate);
+      const data = buffer.getChannelData(0);
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < data.length; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        b6 = white * 0.115926;
+        data[i] = pink * 0.25;
+      }
+      return buffer;
+    }
+    
+    function createBrownNoiseBuffer(ctx, seconds) {
+      const sampleRate = ctx.sampleRate;
+      const buffer = ctx.createBuffer(1, sampleRate * seconds, sampleRate);
+      const data = buffer.getChannelData(0);
+      let lastOut = 0;
+      for (let i = 0; i < data.length; i++) {
+        const white = Math.random() * 2 - 1;
+        const brown = (lastOut + (0.02 * white)) / 1.02;
+        lastOut = brown;
+        data[i] = brown * 0.8;
+      }
+      return buffer;
+    }
+    
+    function stopAll() {
+      activeNodes.forEach(node => {
+        try { node.stop ? node.stop() : node.disconnect(); } catch(e) {}
+      });
+      activeNodes = [];
+    }
+    
+    function playBeep() {
+      const ctx = getCtx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = 900;
+      g.gain.setValueAtTime(0, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0.3, ctx.currentTime+0.02);
+      g.gain.setValueAtTime(0, ctx.currentTime+0.2);
+      g.gain.linearRampToValueAtTime(0.3, ctx.currentTime+0.22);
+      g.gain.setValueAtTime(0, ctx.currentTime+0.4);
+      g.gain.linearRampToValueAtTime(0.3, ctx.currentTime+0.42);
+      g.gain.linearRampToValueAtTime(0, ctx.currentTime+2);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime+2);
+      activeNodes.push(o, g);
+    }
+    
+    function playRain() {
+      stopAll();
+      const ctx = getCtx();
+      const rainSource = ctx.createBufferSource();
+      const rainGain = ctx.createGain();
+      const rainFilter = ctx.createBiquadFilter();
+      rainGain.gain.value = 0.25;
+      rainFilter.type = 'lowpass';
+      rainFilter.frequency.value = 2200;
+      rainSource.buffer = createPinkNoiseBuffer(ctx,2);
+      rainSource.loop = true;
+      const dripOsc = ctx.createOscillator();
+      const dripGain = ctx.createGain();
+      dripOsc.type = 'sine';
+      dripGain.gain.value = 0;
+      function triggerDrip(){
+        const now = ctx.currentTime;
+        dripOsc.frequency.setValueAtTime(600+Math.random()*200, now);
+        dripGain.gain.setValueAtTime(0, now);
+        dripGain.gain.linearRampToValueAtTime(0.02, now+0.01);
+        dripGain.gain.linearRampToValueAtTime(0, now+0.08);
+        setTimeout(triggerDrip, 120+Math.random()*280);
+      }
+      rainSource.connect(rainFilter);
+      rainFilter.connect(rainGain);
+      rainGain.connect(ctx.destination);
+      dripOsc.connect(dripGain);
+      dripGain.connect(ctx.destination);
+      rainSource.start();
+      dripOsc.start();
+      triggerDrip();
+      activeNodes.push(rainSource,dripOsc,rainFilter,rainGain,dripGain);
+    }
+    
+    function playForest() {
+      stopAll();
+      const ctx = getCtx();
+      const windSource = ctx.createBufferSource();
+      const windGain = ctx.createGain();
+      const windFilter = ctx.createBiquadFilter();
+      windGain.gain.value = 0.6;
+      windFilter.type = 'lowpass';
+      windFilter.frequency.value = 1200;
+      windSource.buffer = createBrownNoiseBuffer(ctx,3);
+      windSource.loop = true;
+      const birdOsc = ctx.createOscillator();
+      const birdGain = ctx.createGain();
+      birdOsc.type = 'sine';
+      birdGain.gain.value = 0.01;
+      function triggerBird(){
+        const now = ctx.currentTime;
+        birdOsc.frequency.setValueAtTime(1600+Math.random()*400, now);
+        birdGain.gain.setValueAtTime(0, now);
+        birdGain.gain.linearRampToValueAtTime(0.015, now+0.05);
+        birdOsc.frequency.setValueAtTime(1400+Math.random()*300, now+0.1);
+        birdGain.gain.linearRampToValueAtTime(0, now+0.3);
+        setTimeout(triggerBird, 1500+Math.random()*3500);
+      }
+      const insectOsc = ctx.createOscillator();
+      const insectGain = ctx.createGain();
+      insectOsc.type = 'triangle';
+      insectOsc.frequency.value = 400+Math.random()*200;
+      insectGain.gain.value = 0.015;
+      windSource.connect(windFilter);
+      windFilter.connect(windGain);
+      windGain.connect(ctx.destination);
+      birdOsc.connect(birdGain);
+      birdGain.connect(ctx.destination);
+      insectOsc.connect(insectGain);
+      insectGain.connect(ctx.destination);
+      windSource.start();
+      birdOsc.start();
+      insectOsc.start();
+      triggerBird();
+      activeNodes.push(windSource,birdOsc,insectOsc,windFilter,windGain,birdGain,insectGain);
+    }
+    
+    function playFire() {
+      stopAll();
+      const ctx = getCtx();
+      const src = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      gain.gain.value = 0.3;
+      const buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for(let i=0;i<data.length;i++){
+        let pop = Math.random()>0.98 ? 0.7 : 0.12;
+        data[i] = (Math.random()*2-1)*pop;
+      }
+      src.buffer = buffer;
+      src.loop = true;
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+      activeNodes.push(src,gain);
+    }
+    
+    // Vue 其他逻辑保持不变，仅修改倒计时结束逻辑并集成声音切换
     const tab = ref('focus')
     const navs = [
       { id: 'focus', name: '专注', icon: 'bi-clock', iconFill: 'bi-clock-fill' },
@@ -525,6 +692,7 @@ createApp({
       if(v&&!isNaN(v)&&v>=1&&v<=120) setMinutes(Number(v))
     }
     
+    let isNaturalEnd = false;
     const startTimer = ()=>{
       if(isPaused.value) isPaused.value=false
       else isRunning.value=true
@@ -533,10 +701,11 @@ createApp({
           if(timeLeft.value>0) timeLeft.value--
           else {
             clearInterval(timer); isRunning.value=false
-            if(confirm("是否记录本次专注？")){
-              recordFocusTime(totalMin.value)
-            }
+            isNaturalEnd = true;
+            playBeep();
+            recordFocusTime(totalMin.value);
             setTarget(null); showToast('专注完成！')
+            timeLeft.value = totalMin.value * 60;
           }
         }else{
           elapsedSeconds.value++
@@ -633,11 +802,9 @@ createApp({
       categories.value.splice(idx,1); saveAllData(appData.value)
     }
     
-    // 修正核心记录：普通专注（无绑定）、任务专注、习惯专注全部汇总到今日总时长/总次数
     const recordFocusTime = mins=>{
       if(mins < 1) return; 
       const today = new Date().toLocaleDateString()
-      // 普通专注记录 (无绑定任务/习惯) 同样进入 focusRecord 与 focusCount，但数据模型本身就有。现在确保类型统计也完整，并且totalTodayFocusAll会自动包含所有
       appData.value.focusRecord[today] = (appData.value.focusRecord[today]||0) + mins
       appData.value.focusCount[today] = (appData.value.focusCount[today]||0) + 1
       
@@ -657,7 +824,6 @@ createApp({
       saveAllData(appData.value); refreshStats(); generateMonthCalendar()
     }
     
-    // 今日总专注 (包含普通专注+任务专注+习惯专注) 注意普通专注已经包含在focusRecord中，并且focusRecord已经存储所有专注时长（包含所有类型）
     const totalTodayFocusAll = computed(()=> appData.value.focusRecord[new Date().toLocaleDateString()] || 0)
     const totalTodayFocusAllCount = computed(()=> appData.value.focusCount[new Date().toLocaleDateString()] || 0)
     
@@ -719,7 +885,20 @@ createApp({
     
     const showStats = ref(false), toast = ref(''), showToast = msg=>{ toast.value=msg; setTimeout(()=>toast.value='',2000) }
     const openSettings = ()=>{ showSettingsModal.value=true }
-    const sounds = ref([{id:1,name:'雨声',icon:'bi-cloud-rain'},{id:2,name:'森林',icon:'bi-tree'},{id:3,name:'篝火',icon:'bi-fire'}]), activeSound = ref(null), toggleSound = id=>{ activeSound.value=activeSound.value===id?null:id; showToast(activeSound.value?'已开启':'已关闭') }
+    const sounds = ref([{id:1,name:'雨声',icon:'bi-cloud-rain'},{id:2,name:'森林',icon:'bi-tree'},{id:3,name:'篝火',icon:'bi-fire'}]), activeSound = ref(null), toggleSound = id=>{ 
+      if(activeSound.value === id) {
+        stopAll();
+        activeSound.value = null;
+        showToast('已关闭');
+      } else {
+        stopAll();
+        if(id === 1) playRain();
+        else if(id === 2) playForest();
+        else if(id === 3) playFire();
+        activeSound.value = id;
+        showToast('已开启');
+      }
+    }
     
     const clearAllData = ()=>{ 
       if(confirm('确定清空所有数据？')){ 
@@ -775,6 +954,7 @@ createApp({
 
     onUnmounted(() => {
       document.removeEventListener('click', () => {})
+      stopAll();
     })
 
     watch(showStats, (val)=>{ if(val) refreshStats() })
