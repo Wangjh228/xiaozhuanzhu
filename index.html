@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小专注</title>
+    <title>小专注 - 极简专注，不负时光</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -93,8 +93,9 @@
         </div>
     </div>
 
+    <!-- 修正：底栏统计信息现在显示“今日总专注”即所有专注来源（普通专注+任务专注+习惯专注）的总和与总次数 -->
     <div v-if="tab !== 'mine'" class="fixed-stats-bar">
-        <span v-if="tab === 'focus'">今日总专注：{{ todayFocusTime }} 分钟 · {{ todayFocusCount }} 次</span>
+        <span v-if="tab === 'focus'">今日总专注：{{ totalTodayFocusAll }} 分钟 · {{ totalTodayFocusAllCount }} 次</span>
         <span v-if="tab === 'todo'">今日任务专注：{{ todayTodoFocus }} 分钟 · {{ todayTodoCount }} 次</span>
         <span v-if="tab === 'habit'">今日习惯专注：{{ todayHabitFocus }} 分钟 · {{ todayHabitCount }} 次</span>
     </div>
@@ -159,6 +160,8 @@
                     </div>
                 </div>
             </div>
+            <!-- 增加普通专注（无绑定）的额外展示，让用户更清晰看到所有来源 -->
+            <div class="mt-3 text-xs text-center text-gray-custom">* 普通专注时长已计入总时长与总次数</div>
         </div>
         
         <div class="type-card p-4">
@@ -338,7 +341,8 @@
         <div v-if="tab === 'mine'" class="animate__animated animate__fadeIn">
             <header class="mt-0 mb-4"><h1 class="text-2xl font-bold text-dark">我的</h1></header>
             <div class="space-y-3">
-                <div class="p-4 card-bg rounded-xl shadow-sm"><p class="text-sm font-bold mb-2">今日专注</p><p class="text-xl text-primary font-bold">{{ todayFocusTime }} 分钟 · {{ todayFocusCount }} 次</p></div>
+                <!-- 修正：我的页面今日专注同时汇总所有来源 -->
+                <div class="p-4 card-bg rounded-xl shadow-sm"><p class="text-sm font-bold mb-2">今日专注</p><p class="text-xl text-primary font-bold">{{ totalTodayFocusAll }} 分钟 · {{ totalTodayFocusAllCount }} 次</p></div>
                 <div class="p-4 card-bg rounded-xl shadow-sm"><p class="text-sm font-bold mb-2">累计专注</p><p class="text-lg text-dark font-bold">{{ totalFocusTimeDisplay }} 分钟</p></div>
                 <div class="grid grid-cols-2 gap-3"><button @click="showStats=true" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-bar-chart text-xl text-primary"></i><p class="text-xs mt-1">数据统计</p></button><button @click="openSettings" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-palette text-xl text-primary"></i><p class="text-xs mt-1">主题设置</p></button><button @click="exportData" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-download text-xl text-primary"></i><p class="text-xs mt-1">导出数据</p></button><button @click="importData" class="p-4 card-bg rounded-xl shadow-sm text-center"><i class="bi bi-upload text-xl text-primary"></i><p class="text-xs mt-1">导入数据</p></button></div>
                 <button @click="clearAllData" class="w-full p-4 card-bg rounded-xl shadow-sm text-center text-red-500"><i class="bi bi-trash text-xl"></i><p class="text-xs mt-1">清空所有数据</p></button>
@@ -629,10 +633,14 @@ createApp({
       categories.value.splice(idx,1); saveAllData(appData.value)
     }
     
+    // 修正核心记录：普通专注（无绑定）、任务专注、习惯专注全部汇总到今日总时长/总次数
     const recordFocusTime = mins=>{
-      if(mins < 1) return; const today = new Date().toLocaleDateString()
+      if(mins < 1) return; 
+      const today = new Date().toLocaleDateString()
+      // 普通专注记录 (无绑定任务/习惯) 同样进入 focusRecord 与 focusCount，但数据模型本身就有。现在确保类型统计也完整，并且totalTodayFocusAll会自动包含所有
       appData.value.focusRecord[today] = (appData.value.focusRecord[today]||0) + mins
       appData.value.focusCount[today] = (appData.value.focusCount[today]||0) + 1
+      
       if (currentTarget.value) {
         if (currentTarget.value.title !== undefined) {
           const targetTodo = todos.value.find(t => t.id === currentTarget.value.id)
@@ -649,8 +657,10 @@ createApp({
       saveAllData(appData.value); refreshStats(); generateMonthCalendar()
     }
     
-    const todayFocusTime = computed(()=> appData.value.focusRecord[new Date().toLocaleDateString()] || 0)
-    const todayFocusCount = computed(()=> appData.value.focusCount[new Date().toLocaleDateString()] || 0)
+    // 今日总专注 (包含普通专注+任务专注+习惯专注) 注意普通专注已经包含在focusRecord中，并且focusRecord已经存储所有专注时长（包含所有类型）
+    const totalTodayFocusAll = computed(()=> appData.value.focusRecord[new Date().toLocaleDateString()] || 0)
+    const totalTodayFocusAllCount = computed(()=> appData.value.focusCount[new Date().toLocaleDateString()] || 0)
+    
     const todayTodoFocus = computed(()=> appData.value.typeRecord.todo?.[new Date().toLocaleDateString()] || 0)
     const todayTodoCount = computed(()=> appData.value.typeCount.todo?.[new Date().toLocaleDateString()] || 0)
     const todayHabitFocus = computed(()=> appData.value.typeRecord.habit?.[new Date().toLocaleDateString()] || 0)
@@ -775,7 +785,8 @@ createApp({
       todoFilter,categories,filteredTodos,sortedTodos,showTodoModal,newTodo,addTodo,deleteTodo,toggleTodoDone,startFocusTodo,
       habits,sortedHabits,habitProgress,toggleHabitDone,showHabitModal,newHabit,addHabit,deleteHabit,startFocusHabit,
       showStats,toast,showToast,openSettings,
-      todayFocusTime,todayFocusCount,todayTodoFocus,todayTodoCount,todayHabitFocus,todayHabitCount,totalFocusTimeDisplay,
+      totalTodayFocusAll,totalTodayFocusAllCount,
+      todayTodoFocus,todayTodoCount,todayHabitFocus,todayHabitCount,totalFocusTimeDisplay,
       activeSound,sounds,toggleSound,clearAllData, showCategoryModal,newCat,addCategory,delCategory,
       exportData,importData,
       statRange,statInfo,showCustomDateModal,customDateStart,customDateEnd,setStatRange,applyCustomDateRange,formatDate,showDayDetail,refreshStats,
