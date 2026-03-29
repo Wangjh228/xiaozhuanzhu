@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小专注 - 极简专注，不负时光</title>
+    <title>小专注</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -437,7 +437,7 @@ createApp({
       const rainSource = ctx.createBufferSource();
       const rainGain = ctx.createGain();
       const rainFilter = ctx.createBiquadFilter();
-      rainGain.gain.value = 0.25;
+      rainGain.gain.value = 0.15;
       rainFilter.type = 'lowpass';
       rainFilter.frequency.value = 2200;
       rainSource.buffer = createPinkNoiseBuffer(ctx,2);
